@@ -1,0 +1,293 @@
+# MicroAgent Tools — Complete Schema & Invocation Specification
+
+## 100% Free & Open Access Model
+Every tool execution is 100% free with zero paywalls, zero rate limits, and zero mandatory API keys.
+Optional header:
+```http
+Authorization: Bearer <any_agent_id>
+```
+Responses return:
+```http
+X-Access: free-unlimited
+X-Cost: $0.00
+Content-Type: application/json
+```
+
+---
+
+## 1. SheetDiff (`sheet_diff`)
+* **Cost:** Free ($0.00)
+* **Description:** Deterministic primary-key spreadsheet reconciler. Matches rows by unique keys (SKU, Email, ID) and computes cell-level before/after changes.
+* **Endpoint:** `POST /v1/tools/sheet_diff`
+* **Input Schema:**
+```json
+{
+  "baseline_csv": "string (raw CSV/TSV)",
+  "updated_csv": "string (raw CSV/TSV)",
+  "primary_key": "string (optional, e.g. 'sku')",
+  "case_sensitive": false
+}
+```
+
+---
+
+## 2. TextCleaner (`text_cleaner`)
+* **Cost:** Free ($0.00)
+* **Description:** Cleans scraped web content, strips UTM click IDs from URLs, straightens quotes, removes zero-width invisible junk.
+* **Endpoint:** `POST /v1/tools/text_cleaner`
+* **Input Schema:**
+```json
+{
+  "text": "string",
+  "strip_tracking_urls": true,
+  "fix_line_wraps": true,
+  "straighten_quotes": true,
+  "remove_invisible_chars": true
+}
+```
+
+---
+
+## 3. PIIRedactor (`pii_redactor`)
+* **Cost:** Free ($0.00)
+* **Description:** Identifies and replaces sensitive personal and financial identifiers with `[REDACTED]`.
+* **Endpoint:** `POST /v1/tools/pii_redactor`
+* **Input Schema:**
+```json
+{
+  "text": "string",
+  "redact_credit_cards": true,
+  "redact_emails": true,
+  "redact_phones": true,
+  "redact_ssn": true,
+  "redact_api_keys": true,
+  "replacement_mask": "[REDACTED]"
+}
+```
+
+---
+
+## 4. TermsScanner (`terms_risk_scanner`)
+* **Cost:** Free ($0.00)
+* **Description:** Analyzes legal agreements for forced arbitration, AI training on user data, and auto-renewal traps.
+* **Endpoint:** `POST /v1/tools/terms_risk_scanner`
+* **Input Schema:**
+```json
+{
+  "terms_text": "string"
+}
+```
+
+---
+
+## 5. ReceiptParser (`receipt_parser`)
+* **Cost:** Free ($0.00)
+* **Description:** Parses billing text or invoice dumps into structured JSON with vendor, date, invoice #, tax, and total.
+* **Endpoint:** `POST /v1/tools/receipt_parser`
+* **Input Schema:**
+```json
+{
+  "document_text": "string"
+}
+```
+
+---
+
+## 6. InvoiceBuilder (`invoice_builder`)
+* **Cost:** Free ($0.00)
+* **Description:** Computes line items, taxes, discounts, and generates formatted invoice breakdowns.
+* **Endpoint:** `POST /v1/tools/invoice_builder`
+* **Input Schema:**
+```json
+{
+  "doc_type": "INVOICE",
+  "number": "INV-2026-001",
+  "date": "2026-10-26",
+  "due_date": "2026-11-09",
+  "currency": "$",
+  "items": [
+    { "description": "Cloud Architecture Optimization", "quantity": 10, "rate": 150 }
+  ],
+  "tax_percent": 8.25,
+  "payment_instructions": "Wire: SVB Acct 12345"
+}
+```
+
+---
+
+## 7. OGCardGenerator (`og_card_generator`)
+* **Cost:** Free ($0.00)
+* **Description:** Generates vector 1200x630 SVG social preview cards and HTML / Next.js meta tags.
+* **Endpoint:** `POST /v1/tools/og_card_generator`
+* **Input Schema:**
+```json
+{
+  "title": "string",
+  "description": "string",
+  "badge": "string",
+  "brand": "string",
+  "url": "https://...",
+  "theme": "emerald | purple | sunset | ocean | light"
+}
+```
+
+---
+
+## 8. WebAuditor (`website_health_auditor`)
+* **Cost:** Free ($0.00)
+* **Description:** Checks a live website for HSTS, CSP, X-Frame-Options security headers, and Open Graph tags.
+* **Endpoint:** `POST /v1/tools/website_health_auditor`
+* **Input Schema:**
+```json
+{
+  "url": "https://example.com"
+}
+```
+
+---
+
+## 9. CodeCardGenerator (`code_card_generator`)
+* **Cost:** Free ($0.00)
+* **Description:** Turns raw code snippets into studio-grade syntax-highlighted SVG graphics with macOS frames.
+* **Endpoint:** `POST /v1/tools/code_card_generator`
+* **Input Schema:**
+```json
+{
+  "code": "string",
+  "language": "javascript | python | sql",
+  "title": "snippet.js",
+  "theme": "midnight | hyper | sunset | emerald | slate"
+}
+```
+
+---
+
+## 10. PDFProcessor (`pdf_processor`)
+* **Cost:** Free ($0.00)
+* **Description:** Headless PDF engine: merges multiple PDFs, fills form fields, stamps checkmarks, and inspects page counts.
+* **Endpoint:** `POST /v1/tools/pdf_processor`
+* **Input Schema:**
+```json
+{
+  "mode": "fill | merge | inspect | sample",
+  "pdf_base64": "string",
+  "pdf_list": ["base64..."],
+  "fields": [
+    { "page": 1, "type": "text", "text": "...", "x_percent": 0.2, "y_percent": 0.3 }
+  ]
+}
+```
+
+---
+
+## 11. JSONDiff (`json_diff`)
+* **Cost:** Free ($0.00)
+* **Description:** Semantic JSON diffing with primary-key array reconciliation and breaking schema change detection.
+* **Endpoint:** `POST /v1/tools/json_diff`
+* **Input Schema:**
+```json
+{
+  "original_json": {},
+  "updated_json": {},
+  "primary_key": "auto"
+}
+```
+
+---
+
+## 12. WebhookVerifier (`webhook_verifier`)
+* **Cost:** Free ($0.00)
+* **Description:** Verifies and computes HMAC signatures for Stripe, GitHub, Shopify, Slack, Svix, and Paddle.
+* **Endpoint:** `POST /v1/tools/webhook_verifier`
+* **Input Schema:**
+```json
+{
+  "provider": "stripe",
+  "payload": "string",
+  "secret": "string",
+  "received_signature": "string"
+}
+```
+
+---
+
+## 13. EnvMatrix (`env_matrix`)
+* **Cost:** Free ($0.00)
+* **Description:** Audits .env configurations across dev, staging, and prod for missing secrets or test keys in prod.
+* **Endpoint:** `POST /v1/tools/env_matrix`
+* **Input Schema:**
+```json
+{
+  "dev_env": "string",
+  "staging_env": "string",
+  "prod_env": "string"
+}
+```
+
+---
+
+## 14. DuckLog (`duck_log`)
+* **Cost:** Free ($0.00)
+* **Description:** In-memory SQL engine for server and application logs (Apache, Nginx, Docker, JSON logs).
+* **Endpoint:** `POST /v1/tools/duck_log`
+* **Input Schema:**
+```json
+{
+  "raw_logs": "string",
+  "sql_query": "SELECT status, count(*) AS count FROM logs GROUP BY status"
+}
+```
+
+---
+
+## 15. JwtVerifier (`jwt_verifier`)
+* **Cost:** Free ($0.00)
+* **Description:** Decodes JWT claims, audits signature integrity, checks expiration timestamps.
+* **Endpoint:** `POST /v1/tools/jwt_verifier`
+* **Input Schema:**
+```json
+{
+  "jwt_token": "string",
+  "secret_key": "string"
+}
+```
+
+---
+
+## 16. SourceMapDemapper (`sourcemap_demapper`)
+* **Cost:** Free ($0.00)
+* **Description:** Demaps minified production stack traces back to original TypeScript/JavaScript source files and line numbers.
+* **Endpoint:** `POST /v1/tools/sourcemap_demapper`
+* **Input Schema:**
+```json
+{
+  "stack_trace": "string",
+  "source_map": {}
+}
+```
+
+---
+
+## Model Context Protocol (MCP) Configuration
+
+To connect directly into **Claude Desktop** or **Cursor**:
+```json
+{
+  "mcpServers": {
+    "micro-agent-tools": {
+      "command": "node",
+      "args": ["d:/Free-Micro-SaaS-Tools/src/mcp/server.js"]
+    }
+  }
+}
+```
+Or for remote HTTP agents:
+```json
+{
+  "mcpServers": {
+    "micro-agent-tools": {
+      "url": "https://api.freetools.dev/v1/mcp"
+    }
+  }
+}
+```

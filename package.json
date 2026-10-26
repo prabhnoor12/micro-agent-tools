@@ -1,0 +1,39 @@
+{
+  "name": "micro-agent-tools",
+  "version": "2.0.0",
+  "description": "Deterministic headless tool execution APIs & MCP server for autonomous AI agents",
+  "main": "src/tools/index.js",
+  "bin": {
+    "micro-agent-mcp": "./src/mcp/server.js"
+  },
+  "scripts": {
+    "start": "node src/api/edge_server.js",
+    "mcp": "node src/mcp/server.js",
+    "test": "node tests/test_runner.js",
+    "build": "node -e \"const fs=require('fs'); fs.mkdirSync('public', {recursive:true}); ['index.html','llms.txt','llms-full.txt'].forEach(f => fs.copyFileSync(f, 'public/' + f)); console.log('✅ Public assets synced');\"",
+    "dev:edge": "wrangler dev",
+    "deploy": "wrangler deploy"
+  },
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "ai-agents",
+    "autonomous-agents",
+    "claude",
+    "cursor",
+    "micropayments",
+    "headless-tools",
+    "llms-txt"
+  ],
+  "author": "MicroAgent Labs",
+  "license": "MIT",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "dependencies": {
+    "pdf-lib": "^1.17.1"
+  },
+  "devDependencies": {
+    "wrangler": "^4.152.0"
+  }
+}

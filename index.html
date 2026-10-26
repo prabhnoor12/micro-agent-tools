@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full bg-slate-950 text-slate-100">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MicroAgent Tools — 100% Free Headless APIs & MCP Server for AI Agents</title>
+  <meta name="description" content="100% Free, deterministic, headless tool microservices for autonomous AI agents. Built with Model Context Protocol (MCP) and llms.txt discovery. Zero paywalls, zero accounts." />
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#ecfdf5',
+              500: '#10b981',
+              600: '#059669',
+              700: '#047857'
+            }
+          }
+        }
+      }
+    }
+  </script>
+</head>
+<body class="min-h-full flex flex-col font-sans select-none antialiased">
+
+  <!-- Header -->
+  <header class="border-b border-slate-800 bg-slate-900/90 backdrop-blur sticky top-0 z-40 px-6 h-16 flex items-center justify-between">
+    <div class="flex items-center gap-3">
+      <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-emerald-500 to-teal-400 flex items-center justify-center text-white shadow-md font-mono text-base font-black">
+        🤖
+      </div>
+      <div>
+        <div class="flex items-center gap-2">
+          <h1 class="font-bold text-base text-white tracking-tight">MicroAgent Tools</h1>
+          <span class="px-2 py-0.5 text-[10px] font-mono font-bold rounded-full bg-emerald-950 text-emerald-400 border border-emerald-800">
+            100% Free Forever
+          </span>
+        </div>
+        <p class="text-[11px] text-slate-400">Model Context Protocol · Edge API · Zero Paywalls · Zero Signups</p>
+      </div>
+    </div>
+
+    <!-- Machine Links -->
+    <div class="flex items-center gap-2">
+      <a href="./llms.txt" target="_blank" class="px-3 py-1.5 rounded-lg text-xs font-mono font-semibold bg-slate-900 hover:bg-slate-800 text-emerald-400 border border-slate-700 transition">
+        📄 llms.txt
+      </a>
+      <a href="./llms-full.txt" target="_blank" class="px-3 py-1.5 rounded-lg text-xs font-mono font-semibold bg-slate-900 hover:bg-slate-800 text-sky-400 border border-slate-700 transition">
+        📖 llms-full.txt
+      </a>
+      <a href="#mcpConfig" class="px-3.5 py-1.5 rounded-lg text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white shadow transition">
+        ⚡ Connect MCP
+      </a>
+    </div>
+  </header>
+
+  <!-- Hero Section -->
+  <main class="flex-1 max-w-6xl w-full mx-auto px-6 py-10 flex flex-col gap-10">
+    
+    <div class="space-y-4 max-w-3xl">
+      <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-mono bg-emerald-950/60 text-emerald-400 border border-emerald-800/80">
+        <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+        100% Free Forever for all Autonomous AI Agents & Developers
+      </div>
+      <h2 class="text-3xl sm:text-5xl font-black text-white tracking-tight leading-tight">
+        Deterministic Headless Tools for Autonomous Agents
+      </h2>
+      <p class="text-slate-400 text-sm sm:text-base leading-relaxed">
+        Human interfaces slow down execution. MicroAgent Tools exposes deterministic spreadsheet reconcilers, contract risk analyzers, PDF processors, and developer utilities directly via the <strong class="text-emerald-400">Model Context Protocol (MCP)</strong> and edge JSON APIs. Completely free forever with zero accounts or rate locks.
+      </p>
+    </div>
+
+    <!-- MCP Connection Block -->
+    <section id="mcpConfig" class="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-4 shadow-xl">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-3 flex-wrap gap-2">
+        <div class="flex items-center gap-2">
+          <span class="text-lg">🔌</span>
+          <h3 class="text-sm font-bold text-white uppercase tracking-wider font-mono">1-Click Claude Desktop & Cursor Integration</h3>
+        </div>
+        <button id="copyMcpBtn" class="px-3 py-1 rounded-lg text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 text-white flex items-center gap-1.5 transition">
+          <span>📋</span>
+          <span>Copy MCP Config</span>
+        </button>
+      </div>
+
+      <p class="text-xs text-slate-400">
+        Add this JSON block to your <code class="text-slate-200 bg-slate-950 px-1.5 py-0.5 rounded border border-slate-800">claude_desktop_config.json</code> or Cursor settings to equip your agents with all 16 tools:
+      </p>
+
+      <pre id="mcpJsonBlock" class="p-4 bg-slate-950 border border-slate-800 rounded-xl font-mono text-xs text-emerald-400 overflow-x-auto select-all">{
+  "mcpServers": {
+    "micro-agent-tools": {
+      "command": "node",
+      "args": ["d:/Free-Micro-SaaS-Tools/src/mcp/server.js"]
+    }
+  }
+}</pre>
+    </section>
+
+    <!-- Tool Catalog Table -->
+    <section class="space-y-4">
+      <div class="flex items-center justify-between">
+        <h3 class="text-base font-bold text-white flex items-center gap-2">
+          <span>🛠️</span>
+          <span>16 Free Agent Capabilities</span>
+        </h3>
+        <span class="text-xs text-emerald-400 font-mono font-bold">100% Free Forever</span>
+      </div>
+
+      <div class="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow">
+        <table class="w-full text-left text-xs border-collapse">
+          <thead>
+            <tr class="border-b border-slate-800 bg-slate-950/60 text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+              <th class="p-4">Tool Name</th>
+              <th class="p-4">Agent Capability</th>
+              <th class="p-4 w-36">Input Parameters</th>
+              <th class="p-4 w-28 text-right">Access</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-800/60 font-mono text-slate-300">
+            <tr class="hover:bg-slate-800/30 transition">
+              <td class="p-4 font-bold text-emerald-400">sheet_diff</td>
+              <td class="p-4 text-slate-300 font-sans">Primary-key CSV reconciler. Computes row and cell deltas without LLM hallucinations.</td>
+              <td class="p-4 text-slate-400 text-[11px]">baseline_csv, updated_csv, primary_key</td>
+              <td class="p-4 text-right font-bold text-emerald-400">FREE</td>
+            </tr>
+            <tr class="hover:bg-slate-800/30 transition">
+              <td class="p-4 font-bold text-emerald-400">text_cleaner</td>
+              <td class="p-4 text-slate-300 font-sans">Cleans scraped web content, repairs broken PDF wraps & strips UTM tracking queries.</td>
+              <td class="p-4 text-slate-400 text-[11px]">text, strip_tracking_urls</td>
+              <td class="p-4 text-right font-bold text-emerald-400">FREE</td>
+            </tr>
+            <tr class="hover:bg-slate-800/30 transition">
+              <td class="p-4 font-bold text-emerald-400">pii_redactor</td>
+              <td class="p-4 text-slate-300 font-sans">Scrubs credit cards, SSNs, emails, phone numbers & API keys before LLM ingestion.</td>
+              <td class="p-4 text-slate-400 text-[11px]">text, redact_credit_cards</td>
+              <td class="p-4 text-right font-bold text-emerald-400">FREE</td>
+            </tr>
+            <tr class="hover:bg-slate-800/30 transition">
+              <td class="p-4 font-bold text-emerald-400">terms_risk_scanner</td>
+              <td class="p-4 text-slate-300 font-sans">Analyzes legal contracts for forced arbitration, AI training clauses, and auto-renewals.</td>
+              <td class="p-4 text-slate-400 text-[11px]">terms_text</td>
+              <td class="p-4 text-right font-bold text-emerald-400">FREE</td>
+            </tr>
+            <tr class="hover:bg-slate-800/30 transition">
+              <td class="p-4 font-bold text-emerald-400">receipt_parser</td>
+              <td class="p-4 text-slate-300 font-sans">Extracts vendor, date, invoice number, tax, and line items from billing dumps.</td>
+              <td class="p-4 text-slate-400 text-[11px]">document_text</td>
+              <td class="p-4 text-right font-bold text-emerald-400">FREE</td>
+            </tr>
+            <tr class="hover:bg-slate-800/30 transition">
+              <td class="p-4 font-bold text-emerald-400">invoice_builder</td>
+              <td class="p-4 text-slate-300 font-sans">Calculates line items, taxes, discounts, and formats billing breakdowns.</td>
+              <td class="p-4 text-slate-400 text-[11px]">items, tax_percent, from, to</td>
+              <td class="p-4 text-right font-bold text-emerald-400">FREE</td>
+            </tr>
+            <tr class="hover:bg-slate-800/30 transition">
+              <td class="p-4 font-bold text-emerald-400">og_card_generator</td>
+              <td class="p-4 text-slate-300 font-sans">Generates 1200x630 vector SVG social preview cards and HTML / Next.js meta tags.</td>
+              <td class="p-4 text-slate-400 text-[11px]">title, description, brand, theme</td>
+              <td class="p-4 text-right font-bold text-emerald-400">FREE</td>
+            </tr>
+            <tr class="hover:bg-slate-800/30 transition">
+              <td class="p-4 font-bold text-emerald-400">website_health_auditor</td>
+              <td class="p-4 text-slate-300 font-sans">Audits live target URLs for HSTS, CSP, X-Frame-Options security headers and latency.</td>
+              <td class="p-4 text-slate-400 text-[11px]">url</td>
+              <td class="p-4 text-right font-bold text-emerald-400">FREE</td>
+            </tr>
+            <tr class="hover:bg-slate-800/30 transition">
+              <td class="p-4 font-bold text-emerald-400">code_card_generator</td>
+              <td class="p-4 text-slate-300 font-sans">Renders syntax-highlighted code cards with macOS window frames as vector SVGs.</td>
+              <td class="p-4 text-slate-400 text-[11px]">code, language, theme</td>
+              <td class="p-4 text-right font-bold text-emerald-400">FREE</td>
+            </tr>
+            <tr class="hover:bg-slate-800/30 transition">
+              <td class="p-4 font-bold text-emerald-400">pdf_processor</td>
+              <td class="p-4 text-slate-300 font-sans">Headless PDF engine: merges PDFs, fills form fields & stamps checkmarks.</td>
+              <td class="p-4 text-slate-400 text-[11px]">mode, pdf_base64, fields</td>
+              <td class="p-4 text-right font-bold text-emerald-400">FREE</td>
+            </tr>
+            <tr class="hover:bg-slate-800/30 transition">
+              <td class="p-4 font-bold text-emerald-400">json_diff</td>
+              <td class="p-4 text-slate-300 font-sans">Semantic JSON API diffing with primary-key array reconciliation & breaking change sentinel.</td>
+              <td class="p-4 text-slate-400 text-[11px]">original_json, updated_json</td>
+              <td class="p-4 text-right font-bold text-emerald-400">FREE</td>
+            </tr>
+            <tr class="hover:bg-slate-800/30 transition">
+              <td class="p-4 font-bold text-emerald-400">webhook_verifier</td>
+              <td class="p-4 text-slate-300 font-sans">Verifies HMAC signatures for Stripe, GitHub, Shopify, Slack, Svix, and Paddle.</td>
+              <td class="p-4 text-slate-400 text-[11px]">provider, payload, secret</td>
+              <td class="p-4 text-right font-bold text-emerald-400">FREE</td>
+            </tr>
+            <tr class="hover:bg-slate-800/30 transition">
+              <td class="p-4 font-bold text-emerald-400">env_matrix</td>
+              <td class="p-4 text-slate-300 font-sans">3-way .env matrix sentinel. Detects missing secrets & test keys in production.</td>
+              <td class="p-4 text-slate-400 text-[11px]">dev_env, staging_env, prod_env</td>
+              <td class="p-4 text-right font-bold text-emerald-400">FREE</td>
+            </tr>
+            <tr class="hover:bg-slate-800/30 transition">
+              <td class="p-4 font-bold text-emerald-400">duck_log</td>
+              <td class="p-4 text-slate-300 font-sans">In-memory SQL query engine for server, Docker, Nginx, and JSON log streams.</td>
+              <td class="p-4 text-slate-400 text-[11px]">raw_logs, sql_query</td>
+              <td class="p-4 text-right font-bold text-emerald-400">FREE</td>
+            </tr>
+            <tr class="hover:bg-slate-800/30 transition">
+              <td class="p-4 font-bold text-emerald-400">jwt_verifier</td>
+              <td class="p-4 text-slate-300 font-sans">Decodes JWT claims, audits signature integrity, checks expiration timestamps.</td>
+              <td class="p-4 text-slate-400 text-[11px]">jwt_token, secret_key</td>
+              <td class="p-4 text-right font-bold text-emerald-400">FREE</td>
+            </tr>
+            <tr class="hover:bg-slate-800/30 transition">
+              <td class="p-4 font-bold text-emerald-400">sourcemap_demapper</td>
+              <td class="p-4 text-slate-300 font-sans">Demaps minified stack traces back to original TypeScript/JavaScript source lines.</td>
+              <td class="p-4 text-slate-400 text-[11px]">stack_trace, source_map</td>
+              <td class="p-4 text-right font-bold text-emerald-400">FREE</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Interactive Agent API Console -->
+    <section class="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-4 shadow-xl">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+        <h3 class="text-sm font-bold text-white uppercase tracking-wider font-mono flex items-center gap-2">
+          <span>⚡</span>
+          <span>Agent Live Test Console</span>
+        </h3>
+        <span class="text-xs text-emerald-400 font-mono">100% Free · Live Execution</span>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <!-- Request Pane -->
+        <div class="space-y-3">
+          <div class="flex items-center gap-2">
+            <label class="text-xs font-bold text-slate-300">Tool:</label>
+            <select id="toolSelect" class="bg-slate-950 border border-slate-800 text-emerald-400 font-mono text-xs rounded-lg px-3 py-1.5 focus:outline-none">
+              <option value="sheet_diff">sheet_diff (Free)</option>
+              <option value="text_cleaner">text_cleaner (Free)</option>
+              <option value="pii_redactor">pii_redactor (Free)</option>
+              <option value="terms_risk_scanner">terms_risk_scanner (Free)</option>
+              <option value="receipt_parser">receipt_parser (Free)</option>
+              <option value="invoice_builder">invoice_builder (Free)</option>
+              <option value="og_card_generator">og_card_generator (Free)</option>
+              <option value="code_card_generator">code_card_generator (Free)</option>
+              <option value="json_diff">json_diff (Free)</option>
+              <option value="webhook_verifier">webhook_verifier (Free)</option>
+              <option value="env_matrix">env_matrix (Free)</option>
+              <option value="duck_log">duck_log (Free)</option>
+              <option value="jwt_verifier">jwt_verifier (Free)</option>
+              <option value="sourcemap_demapper">sourcemap_demapper (Free)</option>
+            </select>
+          </div>
+
+          <div class="space-y-1">
+            <label class="text-[11px] font-mono text-slate-400">JSON Arguments:</label>
+            <textarea id="argsTextarea" rows="8" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 font-mono text-xs text-slate-200 focus:outline-none focus:border-emerald-500"></textarea>
+          </div>
+
+          <button id="runToolBtn" class="px-4 py-2 rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white shadow transition flex items-center gap-2">
+            <span>🚀</span>
+            <span>Execute Agent Request</span>
+          </button>
+        </div>
+
+        <!-- Response Pane -->
+        <div class="space-y-2">
+          <div class="flex items-center justify-between">
+            <span class="text-[11px] font-mono text-slate-400">Deterministic Output:</span>
+            <span id="execStats" class="text-[10px] font-mono text-emerald-400"></span>
+          </div>
+          <pre id="outputPre" class="w-full h-[220px] bg-slate-950 border border-slate-800 rounded-xl p-3 font-mono text-xs text-slate-300 overflow-auto select-all">// Output will appear here</pre>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Footer -->
+  <footer class="border-t border-slate-800 py-6 text-center text-xs text-slate-500 mt-auto">
+    <div class="max-w-6xl mx-auto px-6 flex flex-col sm:flex-row items-center justify-between gap-3">
+      <div>MicroAgent Tools — 100% Free headless runtime for AI agents.</div>
+      <div class="flex items-center gap-4 font-mono text-[11px]">
+        <a href="./llms.txt" class="hover:text-emerald-400">llms.txt</a>
+        <span>·</span>
+        <a href="./llms-full.txt" class="hover:text-emerald-400">llms-full.txt</a>
+        <span>·</span>
+        <span>Zero Paywalls · Free Forever</span>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    const samplePayloads = {
+      sheet_diff: {
+        baseline_csv: "sku,price,stock\nSKU-1,19.99,10\nSKU-2,29.99,5",
+        updated_csv: "sku,price,stock\nSKU-1,24.99,8\nSKU-3,39.99,20",
+        primary_key: "sku"
+      },
+      text_cleaner: {
+        text: "Clean this link: https://stripe.com?utm_source=twitter&ref=ai_bot \u201CQuotes\u201D\nline break",
+        strip_tracking_urls: true,
+        straighten_quotes: true
+      },
+      pii_redactor: {
+        text: "User email is alex@example.com and card number is 4111-2222-3333-4444.",
+        redact_emails: true,
+        redact_credit_cards: true
+      },
+      terms_risk_scanner: {
+        terms_text: "You agree that all claims must be resolved in individual binding arbitration. We may train artificial intelligence models on your data."
+      },
+      receipt_parser: {
+        document_text: "AMAZON WEB SERVICES\nInvoice #: INV-4921\nDate: 2026-10-20\nTotal Due: $245.50"
+      },
+      invoice_builder: {
+        number: "INV-2026-001",
+        items: [{ description: "Autonomous Agent Orchestration", quantity: 20, rate: 150 }],
+        tax_percent: 8.25
+      },
+      og_card_generator: {
+        title: "Autonomous Agent Runtime v2.0",
+        description: "Zero UI bloat. High-precision headless tools for AI.",
+        brand: "AgentTools",
+        theme: "emerald"
+      },
+      code_card_generator: {
+        code: "const agent = new Agent({ tools: ['sheet_diff', 'pii_redactor'] });\nawait agent.run();",
+        language: "javascript",
+        title: "agent.js",
+        theme: "midnight"
+      },
+      json_diff: {
+        original_json: { id: 1, name: "Alice", role: "admin" },
+        updated_json: { id: 1, name: "Alice" }
+      },
+      webhook_verifier: {
+        provider: "stripe",
+        payload: '{"event":"charge.succeeded"}',
+        secret: "whsec_test_secret"
+      },
+      env_matrix: {
+        dev_env: "PORT=3000\nAPI_KEY=test_key",
+        prod_env: "PORT=8080"
+      },
+      duck_log: {
+        raw_logs: '{"status":200,"path":"/api"}\n{"status":500,"path":"/pay"}\n{"status":200,"path":"/home"}',
+        sql_query: "SELECT status, count(*) AS count FROM logs GROUP BY status"
+      },
+      jwt_verifier: {
+        jwt_token: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIn0.GcxDYP5ihkgCz4st_pDkMPEkV9k-qE_H0e6yV0_y3v0",
+        secret_key: "secret"
+      },
+      sourcemap_demapper: {
+        stack_trace: "Error: Failed\n    at bundle.js:1:1",
+        source_map: { version: 3, sources: ["app.ts"], names: ["main"], mappings: "AAAA,QAASA" }
+      }
+    };
+
+    const toolSelect = document.getElementById('toolSelect');
+    const argsTextarea = document.getElementById('argsTextarea');
+    const runToolBtn = document.getElementById('runToolBtn');
+    const outputPre = document.getElementById('outputPre');
+    const execStats = document.getElementById('execStats');
+    const copyMcpBtn = document.getElementById('copyMcpBtn');
+    const mcpJsonBlock = document.getElementById('mcpJsonBlock');
+
+    function updatePayload() {
+      const selected = toolSelect.value;
+      argsTextarea.value = JSON.stringify(samplePayloads[selected] || {}, null, 2);
+    }
+
+    toolSelect.addEventListener('change', updatePayload);
+    updatePayload();
+
+    copyMcpBtn.addEventListener('click', () => {
+      navigator.clipboard.writeText(mcpJsonBlock.textContent).then(() => {
+        copyMcpBtn.innerHTML = '<span>✓</span><span>Copied!</span>';
+        setTimeout(() => {
+          copyMcpBtn.innerHTML = '<span>📋</span><span>Copy MCP Config</span>';
+        }, 2000);
+      });
+    });
+
+    runToolBtn.addEventListener('click', async () => {
+      const toolName = toolSelect.value;
+      let args = {};
+      try {
+        args = JSON.parse(argsTextarea.value);
+      } catch (err) {
+        alert('Invalid JSON in arguments.');
+        return;
+      }
+
+      runToolBtn.disabled = true;
+      runToolBtn.textContent = 'Executing...';
+      const start = performance.now();
+
+      try {
+        const res = await fetch(`/v1/tools/${toolName}`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(args)
+        });
+
+        const latency = Math.round(performance.now() - start);
+        const json = await res.json();
+        outputPre.textContent = JSON.stringify(json, null, 2);
+        execStats.textContent = `⚡ ${latency}ms | Status: ${res.status} | 100% Free`;
+      } catch (err) {
+        outputPre.textContent = `// Note: Edge API is designed to run via "npm start" on port 3000.\n// Error connecting: ${err.message}`;
+      } finally {
+        runToolBtn.disabled = false;
+        runToolBtn.innerHTML = '<span>🚀</span><span>Execute Agent Request</span>';
+      }
+    });
+  </script>
+</body>
+</html>

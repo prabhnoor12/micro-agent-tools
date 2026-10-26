@@ -1,0 +1,33 @@
+# MicroAgent Tools
+> Deterministic, high-precision headless tool execution APIs and Model Context Protocol (MCP) server for autonomous AI agents. 100% Free Forever (Zero paywalls, zero accounts, zero rate restrictions).
+
+## 16 Registered Agent Tools (100% Free)
+- **sheet_diff**: Reconcile two CSV/TSV spreadsheets by primary key (SKU, Email, ID). Returns structured row and cell deltas without LLM hallucinations. (Free)
+- **text_cleaner**: Sanitize scraped web text, repair broken PDF line wraps, straighten quotes, strip UTM tracking click IDs. (Free)
+- **pii_redactor**: Scrub sensitive credit card numbers, emails, phone numbers, and SSNs from text before LLM ingestion. (Free)
+- **terms_risk_scanner**: Scan legal contracts and Terms of Service for arbitration traps, AI model data training, and auto-renewals. (Free)
+- **receipt_parser**: Extract vendor, date, invoice number, tax, and line items from billing dumps. (Free)
+- **invoice_builder**: Compute line-item totals, taxes, discounts, and format client billing breakdowns. (Free)
+- **og_card_generator**: Generate vector 1200x630 social preview graphics, HTML meta tags, and Next.js metadata configs. (Free)
+- **website_health_auditor**: Audit target URLs for HTTP security headers (HSTS, CSP, X-Frame-Options), Open Graph tags, and latency. (Free)
+- **code_card_generator**: Render syntax-highlighted code cards with macOS window frames and gradient backdrops as vector SVGs. (Free)
+- **pdf_processor**: Headless PDF engine: merges multiple PDFs, fills flat form fields at exact coordinate percentages, stamps checkmarks. (Free)
+- **json_diff**: Semantic JSON API diffing with primary-key array reconciliation and breaking schema change detection (RFC 6902 patch export). (Free)
+- **webhook_verifier**: Verify and compute HMAC signatures for Stripe, GitHub, Shopify, Slack, Svix, and Paddle with weak secret auditing. (Free)
+- **env_matrix**: Audit .env configurations across dev, staging, and prod. Detects missing production secrets and test keys in prod. (Free)
+- **duck_log**: In-memory SQL engine for server and application logs (Apache, Nginx, Docker, JSON logs). (Free)
+- **jwt_verifier**: Decode JWT header/payload claims, audit signature integrity, check expiration timestamps, and audit secret strength. (Free)
+- **sourcemap_demapper**: Demap minified production JavaScript/Node error stack traces back to original TypeScript/JavaScript source files and line numbers. (Free)
+
+## Protocols & Free Integration
+- **Model Context Protocol (MCP)**:
+  - Stdio Transport: `node src/mcp/server.js`
+  - HTTP JSON-RPC Gateway: `POST https://api.freetools.dev/v1/mcp`
+- **Edge REST API**:
+  - `GET /v1/tools`: Full JSON schema catalog
+  - `POST /v1/tools/:tool_name`: Execute tool with JSON body
+  - Access: 100% Free & Unlimited (`X-Access: free-unlimited`, `X-Cost: $0.00`)
+  - No authentication or tokens required
+
+## Full Documentation
+For complete JSON schemas and curl examples, see: [llms-full.txt](https://api.freetools.dev/llms-full.txt)
