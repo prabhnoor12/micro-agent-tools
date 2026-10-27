@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>MicroAgent Tools — 100% Free Headless APIs & MCP Server for AI Agents</title>
-  <meta name="description" content="100% Free, deterministic, headless tool microservices for autonomous AI agents. Built with Model Context Protocol (MCP) and llms.txt discovery. Zero paywalls, zero accounts." />
+  <title>MicroAgent Tools — Free Edge APIs & MCP Server for AI Agents</title>
+  <meta name="description" content="16 deterministic headless tools and MCP microservices for autonomous AI agents. Zero paywalls, zero accounts, edge-fast." />
 
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -25,62 +25,202 @@
       }
     }
   </script>
+  <style>
+    /* Custom scrollbars */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: #020617; }
+    ::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: #334155; }
+  </style>
 </head>
-<body class="min-h-full flex flex-col font-sans select-none antialiased">
+<body class="min-h-full flex flex-col font-sans antialiased text-slate-200 bg-slate-950">
 
-  <!-- Header -->
-  <header class="border-b border-slate-800 bg-slate-900/90 backdrop-blur sticky top-0 z-40 px-6 h-16 flex items-center justify-between">
+  <!-- Minimal Top Header -->
+  <header class="border-b border-slate-800/80 bg-slate-950/80 backdrop-blur sticky top-0 z-40 px-4 sm:px-8 h-16 flex items-center justify-between">
     <div class="flex items-center gap-3">
-      <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-emerald-500 to-teal-400 flex items-center justify-center text-white shadow-md font-mono text-base font-black">
-        🤖
+      <div class="w-8 h-8 rounded-lg bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 font-mono text-sm font-bold">
+        ⚡
       </div>
       <div>
         <div class="flex items-center gap-2">
-          <h1 class="font-bold text-base text-white tracking-tight">MicroAgent Tools</h1>
-          <span class="px-2 py-0.5 text-[10px] font-mono font-bold rounded-full bg-emerald-950 text-emerald-400 border border-emerald-800">
-            100% Free Forever
+          <span class="font-bold text-sm tracking-tight text-white">MicroAgent Tools</span>
+          <span class="px-2 py-0.5 text-[10px] font-mono font-medium rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+            100% Free
           </span>
         </div>
-        <p class="text-[11px] text-slate-400">Model Context Protocol · Edge API · Zero Paywalls · Zero Signups</p>
+        <p class="text-[11px] text-slate-400 hidden sm:block">16 Edge APIs · Model Context Protocol (MCP) · Zero Paywalls</p>
       </div>
     </div>
 
-    <!-- Machine Links -->
+    <!-- Navigation & Spec Links -->
     <div class="flex items-center gap-2">
-      <a href="./llms.txt" target="_blank" class="px-3 py-1.5 rounded-lg text-xs font-mono font-semibold bg-slate-900 hover:bg-slate-800 text-emerald-400 border border-slate-700 transition">
-        📄 llms.txt
+      <a href="./llms.txt" target="_blank" class="px-2.5 py-1 rounded-md text-xs font-mono bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-800 transition">
+        llms.txt
       </a>
-      <a href="./llms-full.txt" target="_blank" class="px-3 py-1.5 rounded-lg text-xs font-mono font-semibold bg-slate-900 hover:bg-slate-800 text-sky-400 border border-slate-700 transition">
-        📖 llms-full.txt
+      <a href="./llms-full.txt" target="_blank" class="px-2.5 py-1 rounded-md text-xs font-mono bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-800 transition">
+        llms-full.txt
       </a>
-      <a href="#mcpConfig" class="px-3.5 py-1.5 rounded-lg text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white shadow transition">
-        ⚡ Connect MCP
+      <a href="#mcp" class="px-3 py-1 rounded-md text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 text-white shadow-sm transition">
+        Connect MCP
       </a>
     </div>
   </header>
 
-  <!-- Hero Section -->
-  <main class="flex-1 max-w-6xl w-full mx-auto px-6 py-10 flex flex-col gap-10">
-    
-    <div class="space-y-4 max-w-3xl">
-      <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-mono bg-emerald-950/60 text-emerald-400 border border-emerald-800/80">
-        <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-        100% Free Forever for all Autonomous AI Agents & Developers
+  <!-- Main Container -->
+  <main class="flex-1 max-w-6xl w-full mx-auto px-4 sm:px-8 py-8 flex flex-col gap-8">
+
+    <!-- Punchy Minimal Hero -->
+    <div class="space-y-3">
+      <div class="inline-flex items-center gap-2 px-2.5 py-1 rounded-full text-xs font-mono bg-emerald-950/50 text-emerald-400 border border-emerald-800/60">
+        <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+        <span>Running on Cloudflare Edge V8 · Zero Auth Required</span>
       </div>
-      <h2 class="text-3xl sm:text-5xl font-black text-white tracking-tight leading-tight">
-        Deterministic Headless Tools for Autonomous Agents
-      </h2>
-      <p class="text-slate-400 text-sm sm:text-base leading-relaxed">
-        Human interfaces slow down execution. MicroAgent Tools exposes deterministic spreadsheet reconcilers, contract risk analyzers, PDF processors, and developer utilities directly via the <strong class="text-emerald-400">Model Context Protocol (MCP)</strong> and edge JSON APIs. Completely free forever with zero accounts or rate locks.
+      <h1 class="text-2xl sm:text-4xl font-extrabold text-white tracking-tight">
+        Deterministic Headless Tools for AI Agents & Builders
+      </h1>
+      <p class="text-slate-400 text-sm max-w-2xl leading-relaxed">
+        High-precision utilities for CSV reconciliation, PII sanitization, contract risk analysis, and developer workflows. Accessible instantly via <strong class="text-emerald-400 font-semibold">REST JSON APIs</strong> and the <strong class="text-emerald-400 font-semibold">Model Context Protocol (MCP)</strong>.
       </p>
     </div>
 
-    <!-- MCP Connection Block -->
-    <section id="mcpConfig" class="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-4 shadow-xl">
+    <!-- Interactive Test Console (Main Workhorse) -->
+    <section id="console" class="bg-slate-900/90 border border-slate-800 rounded-xl p-5 sm:p-6 space-y-4 shadow-xl">
       <div class="flex items-center justify-between border-b border-slate-800 pb-3 flex-wrap gap-2">
         <div class="flex items-center gap-2">
-          <span class="text-lg">🔌</span>
-          <h3 class="text-sm font-bold text-white uppercase tracking-wider font-mono">1-Click Claude Desktop & Cursor Integration</h3>
+          <span class="text-emerald-400 text-base">⚡</span>
+          <h2 class="text-sm font-bold text-white uppercase tracking-wider font-mono">Live Interactive Console</h2>
+        </div>
+        <div id="latencyBadge" class="text-xs font-mono text-slate-400 flex items-center gap-2">
+          <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+          <span>Ready to execute</span>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
+        <!-- Input Column -->
+        <div class="space-y-3 flex flex-col">
+          <div class="flex items-center justify-between gap-2 flex-wrap">
+            <label for="toolSelect" class="text-xs font-medium text-slate-300">Target Tool:</label>
+            <div class="flex items-center gap-2">
+              <button id="resetPayloadBtn" class="text-[11px] font-mono text-slate-400 hover:text-emerald-400 transition">
+                ↻ Reset Sample
+              </button>
+              <button id="formatJsonBtn" class="text-[11px] font-mono text-slate-400 hover:text-emerald-400 transition">
+                ✦ Format JSON
+              </button>
+            </div>
+          </div>
+
+          <select id="toolSelect" class="w-full bg-slate-950 border border-slate-800 text-emerald-400 font-mono text-xs rounded-lg px-3 py-2 focus:outline-none focus:border-emerald-500 transition">
+            <!-- Populated via JavaScript for all 16 tools -->
+          </select>
+
+          <p id="toolDescription" class="text-xs text-slate-400 min-h-[32px] leading-relaxed"></p>
+
+          <div class="space-y-1 flex-1 flex flex-col">
+            <label for="argsTextarea" class="text-[11px] font-mono text-slate-400">JSON Request Body:</label>
+            <textarea id="argsTextarea" rows="9" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-3 font-mono text-xs text-slate-200 focus:outline-none focus:border-emerald-500/80 transition flex-1 resize-y" spellcheck="false"></textarea>
+          </div>
+
+          <button id="runToolBtn" class="w-full sm:w-auto px-5 py-2.5 rounded-lg text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white shadow transition flex items-center justify-center gap-2">
+            <span>🚀</span>
+            <span>Execute at Edge</span>
+          </button>
+        </div>
+
+        <!-- Output Column -->
+        <div class="space-y-3 flex flex-col">
+          <div class="flex items-center justify-between border-b border-slate-800/80 pb-1.5">
+            <div class="flex items-center gap-1 text-xs">
+              <button id="tabJsonBtn" class="px-3 py-1 font-mono text-xs rounded-md bg-slate-800 text-emerald-400 font-semibold transition">
+                JSON Response
+              </button>
+              <button id="tabVisualBtn" class="px-3 py-1 font-mono text-xs rounded-md text-slate-400 hover:text-slate-200 transition">
+                Visual Preview
+              </button>
+            </div>
+            <button id="copyOutputBtn" class="text-[11px] font-mono text-slate-400 hover:text-emerald-400 transition">
+              Copy Output
+            </button>
+          </div>
+
+          <!-- JSON View -->
+          <div id="jsonViewContainer" class="flex-1 flex flex-col">
+            <pre id="outputPre" class="w-full h-[280px] sm:h-[340px] bg-slate-950 border border-slate-800 rounded-lg p-3 font-mono text-xs text-slate-300 overflow-auto select-all leading-relaxed">// Click "Execute at Edge" to run this tool live</pre>
+          </div>
+
+          <!-- Visual View (Hidden by default, shown when switched) -->
+          <div id="visualViewContainer" class="hidden flex-1 flex flex-col">
+            <div id="visualContainer" class="w-full h-[280px] sm:h-[340px] bg-slate-950 border border-slate-800 rounded-lg p-4 overflow-auto flex items-center justify-center text-xs text-slate-400">
+              Execute a tool to see visual card or rendered output here.
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Quick Copy Code Snippets Tabs (cURL / Python / JS) -->
+      <div class="mt-4 pt-4 border-t border-slate-800/80 space-y-2">
+        <div class="flex items-center justify-between flex-wrap gap-2">
+          <div class="flex items-center gap-2">
+            <span class="text-xs font-mono font-semibold text-slate-400">Integrate:</span>
+            <div class="inline-flex rounded-md p-0.5 bg-slate-950 border border-slate-800 text-xs">
+              <button id="langCurlBtn" class="px-2.5 py-0.5 rounded font-mono text-[11px] bg-slate-800 text-emerald-400">cURL</button>
+              <button id="langPythonBtn" class="px-2.5 py-0.5 rounded font-mono text-[11px] text-slate-400 hover:text-slate-200">Python</button>
+              <button id="langJsBtn" class="px-2.5 py-0.5 rounded font-mono text-[11px] text-slate-400 hover:text-slate-200">JavaScript</button>
+            </div>
+          </div>
+          <button id="copySnippetBtn" class="text-xs font-mono text-emerald-400 hover:text-emerald-300 transition">
+            📋 Copy Code
+          </button>
+        </div>
+
+        <pre id="codeSnippetPre" class="p-3 bg-slate-950 border border-slate-800/90 rounded-lg font-mono text-[11px] text-slate-300 overflow-x-auto select-all"></pre>
+      </div>
+    </section>
+
+    <!-- Searchable Tool Catalog Grid -->
+    <section class="space-y-4">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div>
+          <h2 class="text-base font-bold text-white flex items-center gap-2">
+            <span>🛠️</span>
+            <span>16 Free Headless Capabilities</span>
+          </h2>
+          <p class="text-xs text-slate-400">Click any card to load its arguments into the live runner above</p>
+        </div>
+
+        <!-- Search Input -->
+        <div class="relative w-full sm:w-64">
+          <input 
+            type="text" 
+            id="toolSearchInput" 
+            placeholder="Search tools (e.g. diff, jwt, pii)..." 
+            class="w-full bg-slate-900 border border-slate-800 rounded-lg px-3 py-1.5 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-emerald-500 transition"
+          />
+        </div>
+      </div>
+
+      <!-- Category Filter Pills -->
+      <div class="flex items-center gap-1.5 overflow-x-auto pb-1 text-xs font-mono">
+        <button data-cat="all" class="cat-pill px-3 py-1 rounded-full bg-emerald-600 text-white font-medium">All (16)</button>
+        <button data-cat="data" class="cat-pill px-3 py-1 rounded-full bg-slate-900 text-slate-400 hover:text-white border border-slate-800">📊 Data</button>
+        <button data-cat="security" class="cat-pill px-3 py-1 rounded-full bg-slate-900 text-slate-400 hover:text-white border border-slate-800">🛡️ Security</button>
+        <button data-cat="dev" class="cat-pill px-3 py-1 rounded-full bg-slate-900 text-slate-400 hover:text-white border border-slate-800">⚙️ Dev & Ops</button>
+        <button data-cat="docs" class="cat-pill px-3 py-1 rounded-full bg-slate-900 text-slate-400 hover:text-white border border-slate-800">📄 Docs & Media</button>
+      </div>
+
+      <!-- Tools Grid -->
+      <div id="toolsGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
+        <!-- Rendered dynamically via JavaScript -->
+      </div>
+    </section>
+
+    <!-- MCP Integration Section -->
+    <section id="mcp" class="bg-slate-900/90 border border-slate-800 rounded-xl p-5 sm:p-6 space-y-4 shadow-xl">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-3 flex-wrap gap-2">
+        <div class="flex items-center gap-2">
+          <span class="text-base">🔌</span>
+          <h2 class="text-sm font-bold text-white uppercase tracking-wider font-mono">Connect via Model Context Protocol (MCP)</h2>
         </div>
         <button id="copyMcpBtn" class="px-3 py-1 rounded-lg text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 text-white flex items-center gap-1.5 transition">
           <span>📋</span>
@@ -88,295 +228,545 @@
         </button>
       </div>
 
-      <p class="text-xs text-slate-400">
-        Add this JSON block to your <code class="text-slate-200 bg-slate-950 px-1.5 py-0.5 rounded border border-slate-800">claude_desktop_config.json</code> or Cursor settings to equip your agents with all 16 tools:
+      <p class="text-xs text-slate-400 leading-relaxed">
+        Add this server configuration to your <code class="text-emerald-400 bg-slate-950 px-1.5 py-0.5 rounded border border-slate-800">claude_desktop_config.json</code> or Cursor settings to grant your AI assistant instant access to all 16 tools:
       </p>
 
-      <pre id="mcpJsonBlock" class="p-4 bg-slate-950 border border-slate-800 rounded-xl font-mono text-xs text-emerald-400 overflow-x-auto select-all">{
-  "mcpServers": {
-    "micro-agent-tools": {
-      "command": "node",
-      "args": ["d:/Free-Micro-SaaS-Tools/src/mcp/server.js"]
-    }
-  }
-}</pre>
-    </section>
-
-    <!-- Tool Catalog Table -->
-    <section class="space-y-4">
-      <div class="flex items-center justify-between">
-        <h3 class="text-base font-bold text-white flex items-center gap-2">
-          <span>🛠️</span>
-          <span>16 Free Agent Capabilities</span>
-        </h3>
-        <span class="text-xs text-emerald-400 font-mono font-bold">100% Free Forever</span>
-      </div>
-
-      <div class="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow">
-        <table class="w-full text-left text-xs border-collapse">
-          <thead>
-            <tr class="border-b border-slate-800 bg-slate-950/60 text-[11px] font-bold text-slate-400 uppercase tracking-wider">
-              <th class="p-4">Tool Name</th>
-              <th class="p-4">Agent Capability</th>
-              <th class="p-4 w-36">Input Parameters</th>
-              <th class="p-4 w-28 text-right">Access</th>
-            </tr>
-          </thead>
-          <tbody class="divide-y divide-slate-800/60 font-mono text-slate-300">
-            <tr class="hover:bg-slate-800/30 transition">
-              <td class="p-4 font-bold text-emerald-400">sheet_diff</td>
-              <td class="p-4 text-slate-300 font-sans">Primary-key CSV reconciler. Computes row and cell deltas without LLM hallucinations.</td>
-              <td class="p-4 text-slate-400 text-[11px]">baseline_csv, updated_csv, primary_key</td>
-              <td class="p-4 text-right font-bold text-emerald-400">FREE</td>
-            </tr>
-            <tr class="hover:bg-slate-800/30 transition">
-              <td class="p-4 font-bold text-emerald-400">text_cleaner</td>
-              <td class="p-4 text-slate-300 font-sans">Cleans scraped web content, repairs broken PDF wraps & strips UTM tracking queries.</td>
-              <td class="p-4 text-slate-400 text-[11px]">text, strip_tracking_urls</td>
-              <td class="p-4 text-right font-bold text-emerald-400">FREE</td>
-            </tr>
-            <tr class="hover:bg-slate-800/30 transition">
-              <td class="p-4 font-bold text-emerald-400">pii_redactor</td>
-              <td class="p-4 text-slate-300 font-sans">Scrubs credit cards, SSNs, emails, phone numbers & API keys before LLM ingestion.</td>
-              <td class="p-4 text-slate-400 text-[11px]">text, redact_credit_cards</td>
-              <td class="p-4 text-right font-bold text-emerald-400">FREE</td>
-            </tr>
-            <tr class="hover:bg-slate-800/30 transition">
-              <td class="p-4 font-bold text-emerald-400">terms_risk_scanner</td>
-              <td class="p-4 text-slate-300 font-sans">Analyzes legal contracts for forced arbitration, AI training clauses, and auto-renewals.</td>
-              <td class="p-4 text-slate-400 text-[11px]">terms_text</td>
-              <td class="p-4 text-right font-bold text-emerald-400">FREE</td>
-            </tr>
-            <tr class="hover:bg-slate-800/30 transition">
-              <td class="p-4 font-bold text-emerald-400">receipt_parser</td>
-              <td class="p-4 text-slate-300 font-sans">Extracts vendor, date, invoice number, tax, and line items from billing dumps.</td>
-              <td class="p-4 text-slate-400 text-[11px]">document_text</td>
-              <td class="p-4 text-right font-bold text-emerald-400">FREE</td>
-            </tr>
-            <tr class="hover:bg-slate-800/30 transition">
-              <td class="p-4 font-bold text-emerald-400">invoice_builder</td>
-              <td class="p-4 text-slate-300 font-sans">Calculates line items, taxes, discounts, and formats billing breakdowns.</td>
-              <td class="p-4 text-slate-400 text-[11px]">items, tax_percent, from, to</td>
-              <td class="p-4 text-right font-bold text-emerald-400">FREE</td>
-            </tr>
-            <tr class="hover:bg-slate-800/30 transition">
-              <td class="p-4 font-bold text-emerald-400">og_card_generator</td>
-              <td class="p-4 text-slate-300 font-sans">Generates 1200x630 vector SVG social preview cards and HTML / Next.js meta tags.</td>
-              <td class="p-4 text-slate-400 text-[11px]">title, description, brand, theme</td>
-              <td class="p-4 text-right font-bold text-emerald-400">FREE</td>
-            </tr>
-            <tr class="hover:bg-slate-800/30 transition">
-              <td class="p-4 font-bold text-emerald-400">website_health_auditor</td>
-              <td class="p-4 text-slate-300 font-sans">Audits live target URLs for HSTS, CSP, X-Frame-Options security headers and latency.</td>
-              <td class="p-4 text-slate-400 text-[11px]">url</td>
-              <td class="p-4 text-right font-bold text-emerald-400">FREE</td>
-            </tr>
-            <tr class="hover:bg-slate-800/30 transition">
-              <td class="p-4 font-bold text-emerald-400">code_card_generator</td>
-              <td class="p-4 text-slate-300 font-sans">Renders syntax-highlighted code cards with macOS window frames as vector SVGs.</td>
-              <td class="p-4 text-slate-400 text-[11px]">code, language, theme</td>
-              <td class="p-4 text-right font-bold text-emerald-400">FREE</td>
-            </tr>
-            <tr class="hover:bg-slate-800/30 transition">
-              <td class="p-4 font-bold text-emerald-400">pdf_processor</td>
-              <td class="p-4 text-slate-300 font-sans">Headless PDF engine: merges PDFs, fills form fields & stamps checkmarks.</td>
-              <td class="p-4 text-slate-400 text-[11px]">mode, pdf_base64, fields</td>
-              <td class="p-4 text-right font-bold text-emerald-400">FREE</td>
-            </tr>
-            <tr class="hover:bg-slate-800/30 transition">
-              <td class="p-4 font-bold text-emerald-400">json_diff</td>
-              <td class="p-4 text-slate-300 font-sans">Semantic JSON API diffing with primary-key array reconciliation & breaking change sentinel.</td>
-              <td class="p-4 text-slate-400 text-[11px]">original_json, updated_json</td>
-              <td class="p-4 text-right font-bold text-emerald-400">FREE</td>
-            </tr>
-            <tr class="hover:bg-slate-800/30 transition">
-              <td class="p-4 font-bold text-emerald-400">webhook_verifier</td>
-              <td class="p-4 text-slate-300 font-sans">Verifies HMAC signatures for Stripe, GitHub, Shopify, Slack, Svix, and Paddle.</td>
-              <td class="p-4 text-slate-400 text-[11px]">provider, payload, secret</td>
-              <td class="p-4 text-right font-bold text-emerald-400">FREE</td>
-            </tr>
-            <tr class="hover:bg-slate-800/30 transition">
-              <td class="p-4 font-bold text-emerald-400">env_matrix</td>
-              <td class="p-4 text-slate-300 font-sans">3-way .env matrix sentinel. Detects missing secrets & test keys in production.</td>
-              <td class="p-4 text-slate-400 text-[11px]">dev_env, staging_env, prod_env</td>
-              <td class="p-4 text-right font-bold text-emerald-400">FREE</td>
-            </tr>
-            <tr class="hover:bg-slate-800/30 transition">
-              <td class="p-4 font-bold text-emerald-400">duck_log</td>
-              <td class="p-4 text-slate-300 font-sans">In-memory SQL query engine for server, Docker, Nginx, and JSON log streams.</td>
-              <td class="p-4 text-slate-400 text-[11px]">raw_logs, sql_query</td>
-              <td class="p-4 text-right font-bold text-emerald-400">FREE</td>
-            </tr>
-            <tr class="hover:bg-slate-800/30 transition">
-              <td class="p-4 font-bold text-emerald-400">jwt_verifier</td>
-              <td class="p-4 text-slate-300 font-sans">Decodes JWT claims, audits signature integrity, checks expiration timestamps.</td>
-              <td class="p-4 text-slate-400 text-[11px]">jwt_token, secret_key</td>
-              <td class="p-4 text-right font-bold text-emerald-400">FREE</td>
-            </tr>
-            <tr class="hover:bg-slate-800/30 transition">
-              <td class="p-4 font-bold text-emerald-400">sourcemap_demapper</td>
-              <td class="p-4 text-slate-300 font-sans">Demaps minified stack traces back to original TypeScript/JavaScript source lines.</td>
-              <td class="p-4 text-slate-400 text-[11px]">stack_trace, source_map</td>
-              <td class="p-4 text-right font-bold text-emerald-400">FREE</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    </section>
-
-    <!-- Interactive Agent API Console -->
-    <section class="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-4 shadow-xl">
-      <div class="flex items-center justify-between border-b border-slate-800 pb-3">
-        <h3 class="text-sm font-bold text-white uppercase tracking-wider font-mono flex items-center gap-2">
-          <span>⚡</span>
-          <span>Agent Live Test Console</span>
-        </h3>
-        <span class="text-xs text-emerald-400 font-mono">100% Free · Live Execution</span>
-      </div>
-
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <!-- Request Pane -->
-        <div class="space-y-3">
-          <div class="flex items-center gap-2">
-            <label class="text-xs font-bold text-slate-300">Tool:</label>
-            <select id="toolSelect" class="bg-slate-950 border border-slate-800 text-emerald-400 font-mono text-xs rounded-lg px-3 py-1.5 focus:outline-none">
-              <option value="sheet_diff">sheet_diff (Free)</option>
-              <option value="text_cleaner">text_cleaner (Free)</option>
-              <option value="pii_redactor">pii_redactor (Free)</option>
-              <option value="terms_risk_scanner">terms_risk_scanner (Free)</option>
-              <option value="receipt_parser">receipt_parser (Free)</option>
-              <option value="invoice_builder">invoice_builder (Free)</option>
-              <option value="og_card_generator">og_card_generator (Free)</option>
-              <option value="code_card_generator">code_card_generator (Free)</option>
-              <option value="json_diff">json_diff (Free)</option>
-              <option value="webhook_verifier">webhook_verifier (Free)</option>
-              <option value="env_matrix">env_matrix (Free)</option>
-              <option value="duck_log">duck_log (Free)</option>
-              <option value="jwt_verifier">jwt_verifier (Free)</option>
-              <option value="sourcemap_demapper">sourcemap_demapper (Free)</option>
-            </select>
-          </div>
-
-          <div class="space-y-1">
-            <label class="text-[11px] font-mono text-slate-400">JSON Arguments:</label>
-            <textarea id="argsTextarea" rows="8" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 font-mono text-xs text-slate-200 focus:outline-none focus:border-emerald-500"></textarea>
-          </div>
-
-          <button id="runToolBtn" class="px-4 py-2 rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white shadow transition flex items-center gap-2">
-            <span>🚀</span>
-            <span>Execute Agent Request</span>
-          </button>
-        </div>
-
-        <!-- Response Pane -->
-        <div class="space-y-2">
-          <div class="flex items-center justify-between">
-            <span class="text-[11px] font-mono text-slate-400">Deterministic Output:</span>
-            <span id="execStats" class="text-[10px] font-mono text-emerald-400"></span>
-          </div>
-          <pre id="outputPre" class="w-full h-[220px] bg-slate-950 border border-slate-800 rounded-xl p-3 font-mono text-xs text-slate-300 overflow-auto select-all">// Output will appear here</pre>
-        </div>
-      </div>
+      <pre id="mcpJsonBlock" class="p-4 bg-slate-950 border border-slate-800 rounded-xl font-mono text-xs text-emerald-400 overflow-x-auto select-all leading-relaxed"></pre>
     </section>
 
   </main>
 
-  <!-- Footer -->
-  <footer class="border-t border-slate-800 py-6 text-center text-xs text-slate-500 mt-auto">
-    <div class="max-w-6xl mx-auto px-6 flex flex-col sm:flex-row items-center justify-between gap-3">
-      <div>MicroAgent Tools — 100% Free headless runtime for AI agents.</div>
-      <div class="flex items-center gap-4 font-mono text-[11px]">
-        <a href="./llms.txt" class="hover:text-emerald-400">llms.txt</a>
+  <!-- Minimal Footer -->
+  <footer class="border-t border-slate-800/80 py-6 text-center text-xs text-slate-500 mt-auto">
+    <div class="max-w-6xl mx-auto px-4 sm:px-8 flex flex-col sm:flex-row items-center justify-between gap-3">
+      <div>MicroAgent Tools · Deterministic Edge Runtime for Autonomous AI</div>
+      <div class="flex items-center gap-3 font-mono text-[11px]">
+        <a href="./llms.txt" target="_blank" class="hover:text-emerald-400 transition">llms.txt</a>
         <span>·</span>
-        <a href="./llms-full.txt" class="hover:text-emerald-400">llms-full.txt</a>
+        <a href="./llms-full.txt" target="_blank" class="hover:text-emerald-400 transition">llms-full.txt</a>
         <span>·</span>
-        <span>Zero Paywalls · Free Forever</span>
+        <a href="./v1/tools" target="_blank" class="hover:text-emerald-400 transition">/v1/tools (JSON)</a>
       </div>
     </div>
   </footer>
 
+  <!-- Interactive Logic -->
   <script>
-    const samplePayloads = {
-      sheet_diff: {
-        baseline_csv: "sku,price,stock\nSKU-1,19.99,10\nSKU-2,29.99,5",
-        updated_csv: "sku,price,stock\nSKU-1,24.99,8\nSKU-3,39.99,20",
-        primary_key: "sku"
+    // 1. Tool Metadata Catalog (All 16 deterministic tools)
+    const TOOLS_CATALOG = [
+      {
+        id: "sheet_diff",
+        name: "sheet_diff",
+        icon: "📊",
+        category: "data",
+        shortDesc: "Primary-key CSV reconciler. Computes row and cell deltas without LLM hallucinations.",
+        params: ["baseline_csv", "updated_csv", "primary_key"],
+        sample: {
+          baseline_csv: "sku,price,stock\nSKU-1,19.99,10\nSKU-2,29.99,5",
+          updated_csv: "sku,price,stock\nSKU-1,24.99,8\nSKU-3,39.99,20",
+          primary_key: "sku"
+        }
       },
-      text_cleaner: {
-        text: "Clean this link: https://stripe.com?utm_source=twitter&ref=ai_bot \u201CQuotes\u201D\nline break",
-        strip_tracking_urls: true,
-        straighten_quotes: true
+      {
+        id: "text_cleaner",
+        name: "text_cleaner",
+        icon: "🧹",
+        category: "data",
+        shortDesc: "Cleans scraped web content, repairs broken PDF wraps & strips UTM tracking queries.",
+        params: ["text", "strip_tracking_urls", "straighten_quotes"],
+        sample: {
+          text: "Clean this link: https://stripe.com?utm_source=twitter&ref=ai_bot \u201CQuotes\u201D\nline break",
+          strip_tracking_urls: true,
+          straighten_quotes: true
+        }
       },
-      pii_redactor: {
-        text: "User email is alex@example.com and card number is 4111-2222-3333-4444.",
-        redact_emails: true,
-        redact_credit_cards: true
+      {
+        id: "pii_redactor",
+        name: "pii_redactor",
+        icon: "🛡️",
+        category: "security",
+        shortDesc: "Scrubs credit cards, SSNs, emails, phone numbers & API keys before LLM ingestion.",
+        params: ["text", "redact_emails", "redact_credit_cards"],
+        sample: {
+          text: "User email is alex@example.com and card number is 4111-2222-3333-4444.",
+          redact_emails: true,
+          redact_credit_cards: true
+        }
       },
-      terms_risk_scanner: {
-        terms_text: "You agree that all claims must be resolved in individual binding arbitration. We may train artificial intelligence models on your data."
+      {
+        id: "terms_risk_scanner",
+        name: "terms_risk_scanner",
+        icon: "⚖️",
+        category: "security",
+        shortDesc: "Analyzes legal contracts for forced arbitration, AI training clauses, and auto-renewals.",
+        params: ["terms_text"],
+        sample: {
+          terms_text: "You agree that all claims must be resolved in individual binding arbitration. We may train artificial intelligence models on your data."
+        }
       },
-      receipt_parser: {
-        document_text: "AMAZON WEB SERVICES\nInvoice #: INV-4921\nDate: 2026-10-20\nTotal Due: $245.50"
+      {
+        id: "receipt_parser",
+        name: "receipt_parser",
+        icon: "🧾",
+        category: "docs",
+        shortDesc: "Extracts vendor, date, invoice number, tax, and line items from billing dumps.",
+        params: ["document_text"],
+        sample: {
+          document_text: "AMAZON WEB SERVICES\nInvoice #: INV-4921\nDate: 2026-10-20\nTotal Due: $245.50"
+        }
       },
-      invoice_builder: {
-        number: "INV-2026-001",
-        items: [{ description: "Autonomous Agent Orchestration", quantity: 20, rate: 150 }],
-        tax_percent: 8.25
+      {
+        id: "invoice_builder",
+        name: "invoice_builder",
+        icon: "💳",
+        category: "docs",
+        shortDesc: "Calculates line items, taxes, discounts, and formats billing breakdowns.",
+        params: ["number", "items", "tax_percent"],
+        sample: {
+          number: "INV-2026-001",
+          items: [{ description: "Autonomous Agent Orchestration", quantity: 20, rate: 150 }],
+          tax_percent: 8.25
+        }
       },
-      og_card_generator: {
-        title: "Autonomous Agent Runtime v2.0",
-        description: "Zero UI bloat. High-precision headless tools for AI.",
-        brand: "AgentTools",
-        theme: "emerald"
+      {
+        id: "og_card_generator",
+        name: "og_card_generator",
+        icon: "🖼️",
+        category: "docs",
+        shortDesc: "Generates 1200x630 vector SVG social preview cards and HTML / Next.js meta tags.",
+        params: ["title", "description", "brand", "theme"],
+        sample: {
+          title: "Autonomous Agent Runtime v2.0",
+          description: "Zero UI bloat. High-precision headless tools for AI.",
+          brand: "AgentTools",
+          theme: "emerald"
+        }
       },
-      code_card_generator: {
-        code: "const agent = new Agent({ tools: ['sheet_diff', 'pii_redactor'] });\nawait agent.run();",
-        language: "javascript",
-        title: "agent.js",
-        theme: "midnight"
+      {
+        id: "website_health_auditor",
+        name: "website_health_auditor",
+        icon: "🌐",
+        category: "dev",
+        shortDesc: "Audits live target URLs for HSTS, CSP, X-Frame-Options security headers and latency.",
+        params: ["url"],
+        sample: {
+          url: "https://stripe.com"
+        }
       },
-      json_diff: {
-        original_json: { id: 1, name: "Alice", role: "admin" },
-        updated_json: { id: 1, name: "Alice" }
+      {
+        id: "code_card_generator",
+        name: "code_card_generator",
+        icon: "💻",
+        category: "dev",
+        shortDesc: "Renders syntax-highlighted code cards with macOS frames as vector SVGs.",
+        params: ["code", "language", "title", "theme"],
+        sample: {
+          code: "const agent = new Agent({ tools: ['sheet_diff', 'pii_redactor'] });\nawait agent.run();",
+          language: "javascript",
+          title: "agent.js",
+          theme: "midnight"
+        }
       },
-      webhook_verifier: {
-        provider: "stripe",
-        payload: '{"event":"charge.succeeded"}',
-        secret: "whsec_test_secret"
+      {
+        id: "pdf_processor",
+        name: "pdf_processor",
+        icon: "📑",
+        category: "docs",
+        shortDesc: "Headless PDF engine: merges PDFs, fills form fields & stamps approvals.",
+        params: ["mode", "pdf_base64", "fields"],
+        sample: {
+          mode: "sample"
+        }
       },
-      env_matrix: {
-        dev_env: "PORT=3000\nAPI_KEY=test_key",
-        prod_env: "PORT=8080"
+      {
+        id: "json_diff",
+        name: "json_diff",
+        icon: "🔍",
+        category: "data",
+        shortDesc: "Semantic JSON API diffing with primary-key array reconciliation & breaking change sentinel.",
+        params: ["original_json", "updated_json"],
+        sample: {
+          original_json: { id: 1, name: "Alice", role: "admin" },
+          updated_json: { id: 1, name: "Alice" }
+        }
       },
-      duck_log: {
-        raw_logs: '{"status":200,"path":"/api"}\n{"status":500,"path":"/pay"}\n{"status":200,"path":"/home"}',
-        sql_query: "SELECT status, count(*) AS count FROM logs GROUP BY status"
+      {
+        id: "webhook_verifier",
+        name: "webhook_verifier",
+        icon: "🔐",
+        category: "security",
+        shortDesc: "Verifies HMAC signatures for Stripe, GitHub, Shopify, Slack, Svix, and Paddle.",
+        params: ["provider", "payload", "secret"],
+        sample: {
+          provider: "stripe",
+          payload: "{\"event\":\"charge.succeeded\"}",
+          secret: "whsec_test_secret"
+        }
       },
-      jwt_verifier: {
-        jwt_token: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIn0.GcxDYP5ihkgCz4st_pDkMPEkV9k-qE_H0e6yV0_y3v0",
-        secret_key: "secret"
+      {
+        id: "env_matrix",
+        name: "env_matrix",
+        icon: "⚙️",
+        category: "dev",
+        shortDesc: "3-way .env matrix sentinel. Detects missing secrets & test keys in production.",
+        params: ["dev_env", "staging_env", "prod_env"],
+        sample: {
+          dev_env: "PORT=3000\nAPI_KEY=test_key",
+          staging_env: "PORT=3000\nAPI_KEY=test_key",
+          prod_env: "PORT=8080"
+        }
       },
-      sourcemap_demapper: {
-        stack_trace: "Error: Failed\n    at bundle.js:1:1",
-        source_map: { version: 3, sources: ["app.ts"], names: ["main"], mappings: "AAAA,QAASA" }
+      {
+        id: "duck_log",
+        name: "duck_log",
+        icon: "🦆",
+        category: "data",
+        shortDesc: "In-memory SQL query engine for server, Docker, Nginx, and JSON log streams.",
+        params: ["raw_logs", "sql_query"],
+        sample: {
+          raw_logs: "{\"status\":200,\"path\":\"/api\"}\n{\"status\":500,\"path\":\"/pay\"}\n{\"status\":200,\"path\":\"/home\"}",
+          sql_query: "SELECT status, count(*) AS count FROM logs GROUP BY status"
+        }
+      },
+      {
+        id: "jwt_verifier",
+        name: "jwt_verifier",
+        icon: "🔑",
+        category: "security",
+        shortDesc: "Decodes JWT claims, audits signature integrity, checks expiration timestamps.",
+        params: ["jwt_token", "secret_key"],
+        sample: {
+          jwt_token: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIn0.GcxDYP5ihkgCz4st_pDkMPEkV9k-qE_H0e6yV0_y3v0",
+          secret_key: "secret"
+        }
+      },
+      {
+        id: "sourcemap_demapper",
+        name: "sourcemap_demapper",
+        icon: "🗺️",
+        category: "dev",
+        shortDesc: "Demaps minified stack traces back to original TypeScript/JavaScript source lines.",
+        params: ["stack_trace", "source_map"],
+        sample: {
+          stack_trace: "Error: Failed\n    at bundle.js:1:1",
+          source_map: { version: 3, sources: ["app.ts"], names: ["main"], mappings: "AAAA,QAASA" }
+        }
       }
-    };
+    ];
 
+    // 2. DOM Elements
     const toolSelect = document.getElementById('toolSelect');
+    const toolDescription = document.getElementById('toolDescription');
     const argsTextarea = document.getElementById('argsTextarea');
     const runToolBtn = document.getElementById('runToolBtn');
     const outputPre = document.getElementById('outputPre');
-    const execStats = document.getElementById('execStats');
-    const copyMcpBtn = document.getElementById('copyMcpBtn');
+    const latencyBadge = document.getElementById('latencyBadge');
+    const copyOutputBtn = document.getElementById('copyOutputBtn');
+    const resetPayloadBtn = document.getElementById('resetPayloadBtn');
+    const formatJsonBtn = document.getElementById('formatJsonBtn');
+    const toolsGrid = document.getElementById('toolsGrid');
+    const toolSearchInput = document.getElementById('toolSearchInput');
+    const catPills = document.querySelectorAll('.cat-pill');
     const mcpJsonBlock = document.getElementById('mcpJsonBlock');
+    const copyMcpBtn = document.getElementById('copyMcpBtn');
 
-    function updatePayload() {
-      const selected = toolSelect.value;
-      argsTextarea.value = JSON.stringify(samplePayloads[selected] || {}, null, 2);
+    // Code Snippets
+    const codeSnippetPre = document.getElementById('codeSnippetPre');
+    const langCurlBtn = document.getElementById('langCurlBtn');
+    const langPythonBtn = document.getElementById('langPythonBtn');
+    const langJsBtn = document.getElementById('langJsBtn');
+    const copySnippetBtn = document.getElementById('copySnippetBtn');
+    let currentLang = 'curl';
+
+    // Tabs for Output
+    const tabJsonBtn = document.getElementById('tabJsonBtn');
+    const tabVisualBtn = document.getElementById('tabVisualBtn');
+    const jsonViewContainer = document.getElementById('jsonViewContainer');
+    const visualViewContainer = document.getElementById('visualViewContainer');
+    const visualContainer = document.getElementById('visualContainer');
+    let lastExecutionResult = null;
+
+    // 3. Initialize Tool Select Options
+    TOOLS_CATALOG.forEach(t => {
+      const opt = document.createElement('option');
+      opt.value = t.id;
+      opt.textContent = `${t.icon} ${t.name} (100% Free)`;
+      toolSelect.appendChild(opt);
+    });
+
+    function selectTool(toolId) {
+      toolSelect.value = toolId;
+      const tool = TOOLS_CATALOG.find(t => t.id === toolId);
+      if (tool) {
+        toolDescription.textContent = tool.shortDesc;
+        argsTextarea.value = JSON.stringify(tool.sample, null, 2);
+        updateCodeSnippet();
+      }
     }
 
-    toolSelect.addEventListener('change', updatePayload);
-    updatePayload();
+    toolSelect.addEventListener('change', () => selectTool(toolSelect.value));
+
+    // Reset & Format Buttons
+    resetPayloadBtn.addEventListener('click', () => {
+      const tool = TOOLS_CATALOG.find(t => t.id === toolSelect.value);
+      if (tool) {
+        argsTextarea.value = JSON.stringify(tool.sample, null, 2);
+        updateCodeSnippet();
+      }
+    });
+
+    formatJsonBtn.addEventListener('click', () => {
+      try {
+        const parsed = JSON.parse(argsTextarea.value);
+        argsTextarea.value = JSON.stringify(parsed, null, 2);
+        updateCodeSnippet();
+      } catch (e) {
+        alert('Invalid JSON: ' + e.message);
+      }
+    });
+
+    argsTextarea.addEventListener('input', updateCodeSnippet);
+
+    // 4. Render Tool Grid Cards
+    function renderGrid(filterCat = 'all', searchQuery = '') {
+      toolsGrid.innerHTML = '';
+      const q = searchQuery.toLowerCase().trim();
+
+      const filtered = TOOLS_CATALOG.filter(t => {
+        const matchesCat = filterCat === 'all' || t.category === filterCat;
+        const matchesQuery = !q || t.name.toLowerCase().includes(q) || t.shortDesc.toLowerCase().includes(q);
+        return matchesCat && matchesQuery;
+      });
+
+      if (filtered.length === 0) {
+        toolsGrid.innerHTML = `<div class="col-span-full py-8 text-center text-xs text-slate-500">No tools match "${searchQuery}"</div>`;
+        return;
+      }
+
+      filtered.forEach(t => {
+        const card = document.createElement('div');
+        card.className = "p-4 rounded-xl bg-slate-900 border border-slate-800/90 hover:border-emerald-500/50 transition flex flex-col justify-between gap-3 group";
+        card.innerHTML = `
+          <div class="space-y-1.5">
+            <div class="flex items-center justify-between">
+              <span class="text-sm font-bold text-white group-hover:text-emerald-400 transition flex items-center gap-1.5 font-mono">
+                <span>${t.icon}</span>
+                <span>${t.name}</span>
+              </span>
+              <span class="px-2 py-0.5 rounded text-[10px] font-mono bg-slate-950 text-slate-400 border border-slate-800">
+                ${t.category}
+              </span>
+            </div>
+            <p class="text-xs text-slate-400 leading-relaxed">${t.shortDesc}</p>
+          </div>
+          <div class="flex items-center justify-between pt-2 border-t border-slate-800/60 text-[11px] font-mono">
+            <span class="text-slate-500 truncate max-w-[170px]">${t.params.join(', ')}</span>
+            <button class="try-btn text-emerald-400 hover:text-emerald-300 font-semibold" data-id="${t.id}">
+              Try ↗
+            </button>
+          </div>
+        `;
+        toolsGrid.appendChild(card);
+      });
+
+      // Bind try buttons
+      document.querySelectorAll('.try-btn').forEach(b => {
+        b.addEventListener('click', (e) => {
+          const id = e.currentTarget.getAttribute('data-id');
+          selectTool(id);
+          document.getElementById('console').scrollIntoView({ behavior: 'smooth' });
+        });
+      });
+    }
+
+    toolSearchInput.addEventListener('input', () => {
+      const activeCat = document.querySelector('.cat-pill.bg-emerald-600')?.getAttribute('data-cat') || 'all';
+      renderGrid(activeCat, toolSearchInput.value);
+    });
+
+    catPills.forEach(pill => {
+      pill.addEventListener('click', () => {
+        catPills.forEach(p => {
+          p.className = 'cat-pill px-3 py-1 rounded-full bg-slate-900 text-slate-400 hover:text-white border border-slate-800';
+        });
+        pill.className = 'cat-pill px-3 py-1 rounded-full bg-emerald-600 text-white font-medium';
+        renderGrid(pill.getAttribute('data-cat'), toolSearchInput.value);
+      });
+    });
+
+    // 5. Code Snippet Generator (cURL, Python, JS)
+    function updateCodeSnippet() {
+      const tool = toolSelect.value;
+      const baseUrl = window.location.origin;
+      let rawJson = argsTextarea.value.trim() || '{}';
+
+      if (currentLang === 'curl') {
+        codeSnippetPre.textContent = `curl -X POST "${baseUrl}/v1/tools/${tool}" \\
+  -H "Content-Type: application/json" \\
+  -d '${rawJson.replace(/'/g, "'\\''")}'`;
+      } else if (currentLang === 'python') {
+        codeSnippetPre.textContent = `import requests
+
+url = "${baseUrl}/v1/tools/${tool}"
+payload = ${rawJson}
+
+res = requests.post(url, json=payload)
+print(res.json())`;
+      } else if (currentLang === 'javascript') {
+        codeSnippetPre.textContent = `const res = await fetch("${baseUrl}/v1/tools/${tool}", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify(${rawJson})
+});
+
+const data = await res.json();
+console.log(data);`;
+      }
+    }
+
+    function setSnippetLang(lang) {
+      currentLang = lang;
+      [langCurlBtn, langPythonBtn, langJsBtn].forEach(b => {
+        b.className = "px-2.5 py-0.5 rounded font-mono text-[11px] text-slate-400 hover:text-slate-200";
+      });
+      if (lang === 'curl') langCurlBtn.className = "px-2.5 py-0.5 rounded font-mono text-[11px] bg-slate-800 text-emerald-400 font-bold";
+      if (lang === 'python') langPythonBtn.className = "px-2.5 py-0.5 rounded font-mono text-[11px] bg-slate-800 text-emerald-400 font-bold";
+      if (lang === 'javascript') langJsBtn.className = "px-2.5 py-0.5 rounded font-mono text-[11px] bg-slate-800 text-emerald-400 font-bold";
+      updateCodeSnippet();
+    }
+
+    langCurlBtn.addEventListener('click', () => setSnippetLang('curl'));
+    langPythonBtn.addEventListener('click', () => setSnippetLang('python'));
+    langJsBtn.addEventListener('click', () => setSnippetLang('javascript'));
+
+    copySnippetBtn.addEventListener('click', () => {
+      navigator.clipboard.writeText(codeSnippetPre.textContent).then(() => {
+        copySnippetBtn.textContent = '✓ Copied!';
+        setTimeout(() => copySnippetBtn.textContent = '📋 Copy Code', 2000);
+      });
+    });
+
+    // 6. Live Execution Logic
+    runToolBtn.addEventListener('click', async () => {
+      const toolName = toolSelect.value;
+      let args = {};
+      try {
+        args = JSON.parse(argsTextarea.value);
+      } catch (err) {
+        alert('Invalid JSON in arguments: ' + err.message);
+        return;
+      }
+
+      runToolBtn.disabled = true;
+      runToolBtn.textContent = 'Executing...';
+      latencyBadge.innerHTML = `<span class="w-2 h-2 rounded-full bg-amber-400 animate-ping"></span><span>Executing at Edge...</span>`;
+
+      const start = performance.now();
+      try {
+        const res = await fetch(`/v1/tools/${toolName}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(args)
+        });
+
+        const latency = Math.round(performance.now() - start);
+        const json = await res.json();
+        lastExecutionResult = json;
+
+        outputPre.textContent = JSON.stringify(json, null, 2);
+        latencyBadge.innerHTML = `<span class="w-2 h-2 rounded-full bg-emerald-400"></span><span class="text-emerald-400 font-semibold">⚡ ${latency}ms · Status: ${res.status} · 100% Free</span>`;
+
+        // Update Visual Output if applicable
+        renderVisualOutput(toolName, json);
+
+      } catch (err) {
+        outputPre.textContent = `// Edge Execution Notice:\n// Error connecting: ${err.message}`;
+        latencyBadge.innerHTML = `<span class="w-2 h-2 rounded-full bg-red-400"></span><span class="text-red-400">Execution Error</span>`;
+      } finally {
+        runToolBtn.disabled = false;
+        runToolBtn.innerHTML = '<span>🚀</span><span>Execute at Edge</span>';
+      }
+    });
+
+    function renderVisualOutput(toolName, json) {
+      if (!json || !json.result) {
+        visualContainer.innerHTML = '<div class="text-slate-500">No structured visual output for this execution.</div>';
+        return;
+      }
+
+      const res = json.result;
+
+      if (toolName === 'og_card_generator' && res.svg_card) {
+        visualContainer.innerHTML = `<div class="w-full flex flex-col items-center gap-2"><div class="w-full max-w-[480px] shadow-lg rounded-lg overflow-hidden border border-slate-800">${res.svg_card}</div><span class="text-[11px] text-slate-500 font-mono">1200x630 Vector SVG Preview</span></div>`;
+      } else if (toolName === 'code_card_generator' && res.svg_code_card) {
+        visualContainer.innerHTML = `<div class="w-full flex flex-col items-center gap-2"><div class="w-full max-w-[480px] shadow-lg rounded-lg overflow-hidden border border-slate-800">${res.svg_code_card}</div><span class="text-[11px] text-slate-500 font-mono">Syntax-Highlighted SVG Code Card</span></div>`;
+      } else if (toolName === 'website_health_auditor' && res.security_headers) {
+        visualContainer.innerHTML = `
+          <div class="w-full max-w-sm space-y-3 font-mono text-xs">
+            <div class="flex justify-between items-center bg-slate-950 p-2.5 rounded border border-slate-800">
+              <span class="text-slate-400">Security Score:</span>
+              <span class="text-emerald-400 font-bold">${res.security_score}/100</span>
+            </div>
+            <div class="flex justify-between items-center bg-slate-950 p-2.5 rounded border border-slate-800">
+              <span class="text-slate-400">Target Latency:</span>
+              <span class="text-sky-400 font-bold">${res.latency_ms}ms</span>
+            </div>
+            <div class="space-y-1">
+              <span class="text-[11px] text-slate-400">Security Headers:</span>
+              ${Object.entries(res.security_headers).map(([k, v]) => `
+                <div class="flex justify-between text-[11px] p-1 bg-slate-950/60 rounded">
+                  <span class="text-slate-300">${k}:</span>
+                  <span class="${v ? 'text-emerald-400' : 'text-red-400'}">${v ? 'PASS' : 'MISSING'}</span>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        `;
+      } else {
+        visualContainer.innerHTML = `
+          <div class="text-center space-y-2">
+            <div class="text-emerald-400 text-lg font-mono font-bold">✓ Success</div>
+            <p class="text-xs text-slate-400">Deterministic response received. View the formatted output in the <strong>JSON Response</strong> tab.</p>
+          </div>
+        `;
+      }
+    }
+
+    // Tab Toggling
+    tabJsonBtn.addEventListener('click', () => {
+      tabJsonBtn.className = "px-3 py-1 font-mono text-xs rounded-md bg-slate-800 text-emerald-400 font-semibold transition";
+      tabVisualBtn.className = "px-3 py-1 font-mono text-xs rounded-md text-slate-400 hover:text-slate-200 transition";
+      jsonViewContainer.classList.remove('hidden');
+      visualViewContainer.classList.add('hidden');
+    });
+
+    tabVisualBtn.addEventListener('click', () => {
+      tabVisualBtn.className = "px-3 py-1 font-mono text-xs rounded-md bg-slate-800 text-emerald-400 font-semibold transition";
+      tabJsonBtn.className = "px-3 py-1 font-mono text-xs rounded-md text-slate-400 hover:text-slate-200 transition";
+      visualViewContainer.classList.remove('hidden');
+      jsonViewContainer.classList.add('hidden');
+    });
+
+    copyOutputBtn.addEventListener('click', () => {
+      navigator.clipboard.writeText(outputPre.textContent).then(() => {
+        copyOutputBtn.textContent = '✓ Copied!';
+        setTimeout(() => copyOutputBtn.textContent = 'Copy Output', 2000);
+      });
+    });
+
+    // 7. Dynamic MCP Block
+    function updateMcpBlock() {
+      const origin = window.location.origin || 'https://micro-agent-tools.workers.dev';
+      const mcpConfig = {
+        mcpServers: {
+          "micro-agent-tools": {
+            url: `${origin}/v1/mcp`
+          }
+        }
+      };
+      mcpJsonBlock.textContent = JSON.stringify(mcpConfig, null, 2);
+    }
 
     copyMcpBtn.addEventListener('click', () => {
       navigator.clipboard.writeText(mcpJsonBlock.textContent).then(() => {
@@ -387,40 +777,10 @@
       });
     });
 
-    runToolBtn.addEventListener('click', async () => {
-      const toolName = toolSelect.value;
-      let args = {};
-      try {
-        args = JSON.parse(argsTextarea.value);
-      } catch (err) {
-        alert('Invalid JSON in arguments.');
-        return;
-      }
-
-      runToolBtn.disabled = true;
-      runToolBtn.textContent = 'Executing...';
-      const start = performance.now();
-
-      try {
-        const res = await fetch(`/v1/tools/${toolName}`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify(args)
-        });
-
-        const latency = Math.round(performance.now() - start);
-        const json = await res.json();
-        outputPre.textContent = JSON.stringify(json, null, 2);
-        execStats.textContent = `⚡ ${latency}ms | Status: ${res.status} | 100% Free`;
-      } catch (err) {
-        outputPre.textContent = `// Note: Edge API is designed to run via "npm start" on port 3000.\n// Error connecting: ${err.message}`;
-      } finally {
-        runToolBtn.disabled = false;
-        runToolBtn.innerHTML = '<span>🚀</span><span>Execute Agent Request</span>';
-      }
-    });
+    // Initial Setup
+    selectTool('sheet_diff');
+    renderGrid('all');
+    updateMcpBlock();
   </script>
 </body>
 </html>
