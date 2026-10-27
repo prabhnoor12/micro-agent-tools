@@ -5,7 +5,6 @@
  * Exposes all 8 deterministic agent tools via standard MCP JSON-RPC 2.0 (stdio & SSE)
  */
 
-const readline = require('readline');
 const { listTools, executeTool, getTool } = require('../tools/index');
 
 const PROTOCOL_VERSION = '2024-11-05';
@@ -128,6 +127,7 @@ async function handleRpcRequest(request) {
  * Start stdio transport (Used by Claude Desktop & Cursor)
  */
 function startStdio() {
+  const readline = require('readline');
   const rl = readline.createInterface({
     input: process.stdin,
     output: process.stdout,
