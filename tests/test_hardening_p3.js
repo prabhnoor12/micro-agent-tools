@@ -104,6 +104,28 @@ async function run() {
       (e) => e.statusCode === 400 && /Unknown property/.test(e.message)
     );
   });
+  await ok('New capability params type-checked; usage guards cap custom patterns + extra tables', async () => {
+    await assert.rejects(
+      executeTool('sheet_diff', { baseline_csv: 'a,b\n1,2', updated_csv: 'a,b\n1,2', numeric_tolerance: 'wide' }),
+      (e) => e.statusCode === 400 && /must be of type/.test(e.message)
+    );
+    await assert.rejects(
+      executeTool('pii_redactor', { text: 'hi', custom_patterns: ['('] }),
+      (e) => e.statusCode === 400 && /valid regular expression/.test(e.message)
+    );
+    assert.throws(
+      () => limits.enforceToolUsage('pii_redactor', { text: 'hi', custom_patterns: new Array(21).fill('x+') }),
+      (e) => e.statusCode === 413
+    );
+    assert.throws(
+      () => limits.enforceToolUsage('duck_log', { raw_logs: 'x', extra_tables: { 'bad-name': 'y' } }),
+      (e) => e.statusCode === 413
+    );
+    assert.throws(
+      () => limits.enforceToolUsage('duck_log', { raw_logs: 'x', extra_tables: { logs: 'y' } }),
+      (e) => e.statusCode === 413
+    );
+  });
   await ok('Wrong types + enum violations rejected without echoing values', async () => {
     await assert.rejects(
       executeTool('text_cleaner', { text: 12345 }),

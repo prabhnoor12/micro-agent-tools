@@ -25,7 +25,9 @@ Content-Type: application/json
   "baseline_csv": "string (raw CSV/TSV)",
   "updated_csv": "string (raw CSV/TSV)",
   "primary_key": "string (optional, e.g. 'sku')",
-  "case_sensitive": false
+  "case_sensitive": false,
+  "numeric_tolerance": "number (optional, absolute tolerance for numeric cells)",
+  "detect_moves": "boolean (optional, default true; reports reordered rows)"
 }
 ```
 
@@ -61,7 +63,9 @@ Content-Type: application/json
   "redact_phones": true,
   "redact_ssn": true,
   "redact_api_keys": true,
-  "replacement_mask": "[REDACTED]"
+  "replacement_mask": "[REDACTED]",
+  "allow_test_data": "boolean (optional; lets 555-01xx / example.com values through)",
+  "custom_patterns": "string[] (optional; extra redaction regexes, max 20)"
 }
 ```
 
@@ -228,13 +232,14 @@ Content-Type: application/json
 
 ## 14. DuckLog (`duck_log`)
 * **Cost:** Free ($0.00)
-* **Description:** In-memory SQL engine for server and application logs (Apache, Nginx, Docker, JSON logs).
+* **Description:** In-memory SQL engine for server and application logs (Apache, Nginx, Docker, JSON logs). Supports one INNER/LEFT JOIN across named tables, DATE_TRUNC time bucketing, and per-table schema discovery.
 * **Endpoint:** `POST /v1/tools/duck_log`
 * **Input Schema:**
 ```json
 {
   "raw_logs": "string",
-  "sql_query": "SELECT status, count(*) AS count FROM logs GROUP BY status"
+  "sql_query": "SELECT status, count(*) AS count FROM logs GROUP BY status",
+  "extra_tables": "object (optional, e.g. { errors: '<ndjson>' } for JOINs)"
 }
 ```
 

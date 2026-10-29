@@ -146,24 +146,77 @@ function runEnvMatrix(devEnv, stagingEnv, prodEnv, options = {}) {
  * 4. In-Memory SQL Query Engine for High-Volume Logs
  */
 const MAX_DUCK_DATASET_ROWS = 50000;
+const MAX_DUCK_TABLES = 9; // `logs` + up to 8 extra tables
+
+function parseDuckTable(raw) {
+  const logStr = Array.isArray(raw) ? raw.map(l => typeof l === 'object' ? JSON.stringify(l) : String(l)).join('\n') : String(raw || '');
+  const format = LogParser.detectFormat(logStr);
+  let rows = LogParser.parseLogs(logStr);
+  // Dataset cap: a 1MB log of tiny lines still parses to tens of thousands
+  // of rows. Slice (newest assumption: file order) and say so.
+  let truncated = false;
+  if (rows.length > MAX_DUCK_DATASET_ROWS) {
+    rows = rows.slice(0, MAX_DUCK_DATASET_ROWS);
+    truncated = true;
+  }
+  return { rows, truncated, format };
+}
+
+// Column inventory so agents discover table shape instead of guessing names.
+function inferDuckColumns(rows) {
+  const seen = new Map();
+  const limit = Math.min(rows.length, 2000);
+  for (let i = 0; i < limit; i++) {
+    const row = rows[i];
+    if (!row || typeof row !== 'object') continue;
+    for (const k of Object.keys(row)) {
+      if (k === '__q' || seen.has(k)) continue;
+      if (seen.size >= 200) break;
+      seen.set(k, null);
+    }
+  }
+  const columns = [];
+  for (const name of seen.keys()) {
+    let type = 'string';
+    for (let i = 0; i < limit; i++) {
+      const v = rows[i] ? rows[i][name] : undefined;
+      if (v === undefined || v === null) continue;
+      type = typeof v === 'number' ? 'number' : typeof v === 'boolean' ? 'boolean' : 'string';
+      break;
+    }
+    columns.push({ name, type });
+  }
+  return columns;
+}
 
 function runDuckLog(rawLogs, sqlQuery = "SELECT status, COUNT(*) AS count FROM logs GROUP BY status ORDER BY count DESC", opts = {}) {
   const signal = opts.signal || null;
   const maxRows = Number(opts.maxRows) > 0 ? Number(opts.maxRows) : 1000;
-  const logStr = Array.isArray(rawLogs) ? rawLogs.map(l => typeof l === 'object' ? JSON.stringify(l) : String(l)).join('\n') : String(rawLogs || '');
-
-  const detectedFormat = LogParser.detectFormat(logStr);
-  let dataset = LogParser.parseLogs(logStr);
-  // Dataset cap: a 1MB log of tiny lines still parses to tens of thousands
-  // of rows. Slice (newest assumption: file order) and say so.
-  let datasetTruncated = false;
-  if (dataset.length > MAX_DUCK_DATASET_ROWS) {
-    dataset = dataset.slice(0, MAX_DUCK_DATASET_ROWS);
-    datasetTruncated = true;
+  const extra = (opts.tables && typeof opts.tables === 'object' && !Array.isArray(opts.tables)) ? opts.tables : {};
+  const tableSpecs = { logs: rawLogs };
+  for (const [name, raw] of Object.entries(extra)) tableSpecs[name] = raw;
+  if (Object.keys(tableSpecs).length > MAX_DUCK_TABLES) {
+    return { ok: false, error: `Too many tables (max ${MAX_DUCK_TABLES}).`, detectedFormat: 'empty', totalLogsParsed: 0 };
   }
+
+  const datasets = {};
+  const schema = {};
+  let detectedFormat = 'empty';
+  for (const [name, raw] of Object.entries(tableSpecs)) {
+    if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(name)) {
+      return { ok: false, error: `Invalid table name "${name}". Use letters, digits, underscores.`, detectedFormat: 'empty', totalLogsParsed: 0 };
+    }
+    const parsed = parseDuckTable(raw);
+    const key = name.toLowerCase();
+    datasets[key] = parsed.rows;
+    schema[key] = { rows: parsed.rows.length, truncated: parsed.truncated, format: parsed.format, columns: inferDuckColumns(parsed.rows) };
+    if (key === 'logs') detectedFormat = parsed.format;
+  }
+  const dataset = datasets.logs;
+  const datasetTruncated = schema.logs.truncated;
   let queryResult;
   try {
-    queryResult = SqlEngine.execute(sqlQuery, dataset, { signal, maxRows });
+    queryResult = SqlEngine.execute(sqlQuery, datasets, { signal, maxRows });
   } catch (err) {
     // Cooperative abort must propagate as a throw (→ HTTP 504), not a
     // 200-shaped {ok:false} result nobody waits for.
@@ -181,7 +234,8 @@ function runDuckLog(rawLogs, sqlQuery = "SELECT status, COUNT(*) AS count FROM l
       ok: false,
       error: queryResult.error,
       detectedFormat,
-      totalLogsParsed: dataset.length
+      totalLogsParsed: dataset.length,
+      schema
     };
   }
 
@@ -195,6 +249,7 @@ function runDuckLog(rawLogs, sqlQuery = "SELECT status, COUNT(*) AS count FROM l
     detectedFormat,
     totalLogsParsed: total,
     datasetTruncated,
+    schema,
     query: sqlQuery,
     executionTimeMs: queryResult.executionTimeMs,
     rowCount: queryResult.rowCount,

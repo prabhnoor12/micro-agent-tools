@@ -37,6 +37,40 @@ async function runTests() {
   assert(diffRes.stats.deleted_count === 1, 'SheetDiff detects 1 deleted row (SKU 102)');
   assert(diffRes.stats.modified_count === 1, 'SheetDiff detects 1 modified row (SKU 101)');
 
+  // 2b. SheetDiff capability: numeric-aware compare, duplicates, schema, moves
+  const numRes = await executeTool('sheet_diff', {
+    baseline_csv: 'sku,price\nA,10\nB,20.00',
+    updated_csv: 'sku,price\nA,10.00\nB,20',
+    primary_key: 'sku'
+  });
+  assert(numRes.stats.modified_count === 0, 'SheetDiff numeric compare: 10 vs 10.00 unchanged');
+  const tolRes = await executeTool('sheet_diff', {
+    baseline_csv: 'sku,price\nA,10.00',
+    updated_csv: 'sku,price\nA,10.05',
+    primary_key: 'sku',
+    numeric_tolerance: 0.1
+  });
+  assert(tolRes.stats.modified_count === 0, 'SheetDiff tolerance 0.1 absorbs 10.00 vs 10.05');
+  const dupRes = await executeTool('sheet_diff', {
+    baseline_csv: 'sku,price\nA,1\nA,2',
+    updated_csv: 'sku,price\nA,1',
+    primary_key: 'sku'
+  });
+  assert(dupRes.stats.duplicate_key_count === 1, 'SheetDiff reports duplicate primary key');
+  assert(dupRes.duplicate_keys.baseline.length === 1 && dupRes.duplicate_keys.baseline[0].key === 'A', 'SheetDiff names the duplicated key');
+  const schRes = await executeTool('sheet_diff', {
+    baseline_csv: 'sku,cost\nA,1',
+    updated_csv: 'sku,price\nA,1',
+    primary_key: 'sku'
+  });
+  assert(schRes.schema_changes.renamed_columns.length === 1 && schRes.schema_changes.renamed_columns[0].from === 'cost' && schRes.schema_changes.renamed_columns[0].to === 'price', 'SheetDiff detects column rename cost->price');
+  const movRes = await executeTool('sheet_diff', {
+    baseline_csv: 'sku,price\nA,1\nB,2',
+    updated_csv: 'sku,price\nB,2\nA,1',
+    primary_key: 'sku'
+  });
+  assert(movRes.stats.moved_count === 2 && movRes.stats.added_count === 0 && movRes.stats.deleted_count === 0, 'SheetDiff reports reorder as moves, not add/delete');
+
   // 3. TextCleaner Test
   console.log('\n--- 3. Tool: text_cleaner ---');
   const cleanRes = await executeTool('text_cleaner', {
@@ -52,6 +86,20 @@ async function runTests() {
     text: 'Call alex@example.com at 555-123-4567. Card: 4111-1111-1111-1111'
   });
   assert(redactRes.redactions_count === 3, 'PIIRedactor detected 3 PII entities');
+
+  // 4b. PIIRedactor capability: offsets, test-data allowlist, custom patterns
+  const spanText = 'Call alex@example.com now';
+  const spanRes = await executeTool('pii_redactor', { text: spanText });
+  const emailHit = spanRes.detections_summary.find(d => d.type === 'email');
+  assert(emailHit && emailHit.start === spanText.indexOf('alex@example.com') && emailHit.end === spanText.indexOf('alex@example.com') + 16, 'PIIRedactor reports source offsets per detection');
+  assert(spanText.slice(emailHit.start, emailHit.end) === 'alex@example.com', 'PIIRedactor offsets slice the exact match');
+  const ficRes = await executeTool('pii_redactor', { text: 'Call 555-014-0199, mail ops@example.com', allow_test_data: true });
+  assert(ficRes.redactions_count === 0, 'PIIRedactor allow_test_data lets fictional values through');
+  const ficDefault = await executeTool('pii_redactor', { text: 'Call 555-014-0199, mail ops@example.com' });
+  assert(ficDefault.redactions_count === 2, 'PIIRedactor still redacts fictional-looking values by default');
+  const custRes = await executeTool('pii_redactor', { text: 'deploy INTERNAL-1234 now', custom_patterns: ['INTERNAL-[0-9]{4}'] });
+  assert(custRes.redactions_count === 1 && custRes.detections_summary[0].type === 'custom' && !custRes.redacted_text.includes('INTERNAL-1234'), 'PIIRedactor custom pattern redacts domain secret');
+  assert(custRes.detections_summary[0].last4 === undefined, 'PIIRedactor custom detections carry no last4');
 
   // 5. TermsScanner Test
   console.log('\n--- 5. Tool: terms_risk_scanner ---');
@@ -142,6 +190,29 @@ async function runTests() {
     sql_query: 'SELECT status, count(*) AS count FROM logs GROUP BY status'
   });
   assert(duckRes.rowCount === 2, 'DuckLog executed SQL aggregate over raw JSON logs');
+  assert(duckRes.schema && duckRes.schema.logs.columns.some(c => c.name === 'status' && c.type === 'number'), 'DuckLog returns schema discovery with column types');
+
+  // 14b. DuckLog capability: JOINs, DATE_TRUNC bucketing, LEFT JOIN nulls
+  const accessLogs = '{"trace":"t1","path":"/pay","status":500}\n{"trace":"t2","path":"/ok","status":200}';
+  const errorLogs = '{"trace":"t1","error":"charge_failed"}';
+  const joinRes = await executeTool('duck_log', {
+    raw_logs: accessLogs,
+    extra_tables: { errors: errorLogs },
+    sql_query: 'SELECT logs.path AS path, errors.error AS error FROM logs JOIN errors ON logs.trace = errors.trace'
+  });
+  assert(joinRes.ok === true && joinRes.rowCount === 1 && joinRes.rows[0].path === '/pay' && joinRes.rows[0].error === 'charge_failed', 'DuckLog INNER JOIN correlates two log sources');
+  const leftRes = await executeTool('duck_log', {
+    raw_logs: accessLogs,
+    extra_tables: { errors: errorLogs },
+    sql_query: 'SELECT logs.path AS path, errors.error AS error FROM logs LEFT JOIN errors ON logs.trace = errors.trace ORDER BY path'
+  });
+  assert(leftRes.ok === true && leftRes.rowCount === 2 && leftRes.rows[0].path === '/ok' && leftRes.rows[0].error === null, 'DuckLog LEFT JOIN keeps unmatched rows with nulls');
+  const timeLogs = '{"ts":"2026-10-29T13:15:00Z","status":500}\n{"ts":"2026-10-29T13:45:00Z","status":500}\n{"ts":"2026-10-29T14:05:00Z","status":200}';
+  const truncRes = await executeTool('duck_log', {
+    raw_logs: timeLogs,
+    sql_query: "SELECT DATE_TRUNC('hour', ts) AS hour, COUNT(*) AS n FROM logs GROUP BY DATE_TRUNC('hour', ts) ORDER BY hour"
+  });
+  assert(truncRes.ok === true && truncRes.rowCount === 2 && truncRes.rows[0].hour === '2026-10-29T13:00:00.000Z' && truncRes.rows[0].n === 2, 'DuckLog DATE_TRUNC buckets timestamps by hour');
 
   // 15. JwtVerifier Test (JWT Studio Pro)
   console.log('\n--- 15. Tool: jwt_verifier ---');

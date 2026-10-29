@@ -378,6 +378,18 @@ function enforceToolUsage(toolName, args) {
       if (strLen(a.raw_logs) > lim.maxLogChars) fail('raw_logs exceeds max size of 1MB.');
       if (Array.isArray(a.raw_logs) && rawLen > 20000) fail('raw_logs exceeds max of 20000 entries.');
       if (strLen(a.sql_query) > lim.maxSqlChars) fail('sql_query exceeds max length of 5000 chars.');
+      if (a.extra_tables && typeof a.extra_tables === 'object' && !Array.isArray(a.extra_tables)) {
+        const names = Object.keys(a.extra_tables);
+        if (names.length > 8) fail('extra_tables exceeds max of 8 tables.');
+        for (const n of names) {
+          if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(n) || n.toLowerCase() === 'logs') {
+            fail('Invalid extra table name. Use letters, digits, underscores; not "logs".');
+          }
+          const t = a.extra_tables[n];
+          if (typeof t === 'string' && t.length > lim.maxLogChars) fail('extra table exceeds max size of 1MB.');
+          if (Array.isArray(t) && t.length > 20000) fail('extra table exceeds max of 20000 entries.');
+        }
+      }
       break;
     }
     case 'text_cleaner':
@@ -393,6 +405,12 @@ function enforceToolUsage(toolName, args) {
       if (a.text.length > lim.maxChars) fail('text exceeds max size of 500KB.');
       if (typeof a.replacement_mask === 'string' && a.replacement_mask.length > lim.maxMaskChars) {
         fail('replacement_mask exceeds max length of 64 chars.');
+      }
+      if (Array.isArray(a.custom_patterns)) {
+        if (a.custom_patterns.length > 20) fail('custom_patterns exceeds max of 20 patterns.');
+        for (const p of a.custom_patterns) {
+          if (typeof p === 'string' && p.length > 200) fail('custom pattern exceeds max length of 200 chars.');
+        }
       }
       break;
     }
