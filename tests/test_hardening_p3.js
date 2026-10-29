@@ -125,6 +125,21 @@ async function run() {
       () => limits.enforceToolUsage('duck_log', { raw_logs: 'x', extra_tables: { logs: 'y' } }),
       (e) => e.statusCode === 413
     );
+    await assert.rejects(
+      executeTool('sheet_diff', { baseline_csv: 'a\n1', updated_csv: 'a\n1', primary_key: ['a', 5] }),
+      (e) => e.statusCode === 400 && /must be of type string/.test(e.message)
+    );
+    await assert.rejects(
+      executeTool('sheet_diff', { baseline_csv: 'a\n1', updated_csv: 'a\n1', delimiter: 'xx' }),
+      (e) => e.statusCode === 400 && /must be one of/.test(e.message)
+    );
+    assert.throws(
+      () => limits.enforceToolUsage('pii_redactor', { text: 'hi', pseudonym_seed: 'x'.repeat(257) }),
+      (e) => e.statusCode === 413
+    );
+    const havingNoGroup = await executeTool('duck_log', { raw_logs: '{"a":1}', sql_query: 'SELECT a FROM logs HAVING COUNT(*) > 1' });
+    assert.strictEqual(havingNoGroup.ok, false);
+    assert.match(havingNoGroup.error, /GROUP BY/);
   });
   await ok('Wrong types + enum violations rejected without echoing values', async () => {
     await assert.rejects(

@@ -18,7 +18,7 @@ function execute(args, opts = {}) {
 
 module.exports = {
   name: 'duck_log',
-  description: 'Parses raw application, Docker, Nginx, or JSON logs into virtual tables and executes SQL (WHERE/GROUP BY/ORDER BY/LIMIT, single INNER/LEFT JOIN, DATE_TRUNC bucketing) with automated post-mortem metrics and schema discovery.',
+  description: 'Parses raw application, Docker, Nginx, or JSON logs into virtual tables and executes SQL (WHERE/GROUP BY/HAVING/ORDER BY/LIMIT, chained INNER/LEFT JOINs, UNION, DATE_TRUNC bucketing, COUNT/AVG/SUM/P50/P95/P99) with automated post-mortem metrics and schema discovery.',
   free: true,
   cost_usd: 0.00,
   parameters: {

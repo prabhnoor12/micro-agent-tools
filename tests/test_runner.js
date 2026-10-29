@@ -71,6 +71,32 @@ async function runTests() {
   });
   assert(movRes.stats.moved_count === 2 && movRes.stats.added_count === 0 && movRes.stats.deleted_count === 0, 'SheetDiff reports reorder as moves, not add/delete');
 
+  // 2c. SheetDiff follow-ups: composite keys, delimiter override, header case
+  const compRes = await executeTool('sheet_diff', {
+    baseline_csv: 'wh,sku,price\nA,1,10\nB,2,20',
+    updated_csv: 'wh,sku,price\nA,1,12\nB,3,20',
+    primary_key: ['wh', 'sku']
+  });
+  assert(compRes.stats.modified_count === 1 && compRes.stats.added_count === 1 && compRes.stats.deleted_count === 1, 'SheetDiff composite key matches on wh+sku');
+  assert(compRes.primary_key_used === 'wh+sku', 'SheetDiff reports composite key in use');
+  const pipeRes = await executeTool('sheet_diff', {
+    baseline_csv: 'a|b\n1|2',
+    updated_csv: 'a|b\n1|3',
+    delimiter: '|'
+  });
+  assert(pipeRes.stats.modified_count === 1 && pipeRes.primary_key_used === 'a', 'SheetDiff delimiter override parses pipe-separated sheets');
+  const hcaseRes = await executeTool('sheet_diff', {
+    baseline_csv: 'SKU,Price\nA,10',
+    updated_csv: 'sku,price\nA,10'
+  });
+  assert(hcaseRes.stats.modified_count === 0 && hcaseRes.stats.unchanged_count === 1, 'SheetDiff matches headers case-insensitively by default');
+  const hcaseStrict = await executeTool('sheet_diff', {
+    baseline_csv: 'sku,Price\nA,10',
+    updated_csv: 'sku,price\nA,10',
+    headers_case_sensitive: true
+  });
+  assert(hcaseStrict.stats.modified_count === 1, 'SheetDiff headers_case_sensitive restores strict columns');
+
   // 3. TextCleaner Test
   console.log('\n--- 3. Tool: text_cleaner ---');
   const cleanRes = await executeTool('text_cleaner', {
@@ -100,6 +126,22 @@ async function runTests() {
   const custRes = await executeTool('pii_redactor', { text: 'deploy INTERNAL-1234 now', custom_patterns: ['INTERNAL-[0-9]{4}'] });
   assert(custRes.redactions_count === 1 && custRes.detections_summary[0].type === 'custom' && !custRes.redacted_text.includes('INTERNAL-1234'), 'PIIRedactor custom pattern redacts domain secret');
   assert(custRes.detections_summary[0].last4 === undefined, 'PIIRedactor custom detections carry no last4');
+
+  // 4c. PIIRedactor follow-ups: pseudonyms, IBAN, confidence
+  const pseudoRes = await executeTool('pii_redactor', { text: 'mail a@x.com and a@x.com, call 555-123-4567', pseudonymize: true });
+  const pseudoMails = pseudoRes.detections_summary.filter(d => d.type === 'email');
+  assert(pseudoRes.redactions_count === 3, 'PIIRedactor pseudonymize still redacts all hits');
+  assert(pseudoMails.length === 2 && pseudoMails[0].surrogate === pseudoMails[1].surrogate && /^\[EMAIL-\d+\]$/.test(pseudoMails[0].surrogate), 'PIIRedactor same value reuses the same surrogate');
+  assert(!pseudoRes.redacted_text.includes('a@x.com') && pseudoRes.redacted_text.includes(pseudoMails[0].surrogate), 'PIIRedactor surrogates appear in redacted text');
+  const seedA = await executeTool('pii_redactor', { text: 'key a@x.com', pseudonymize: true, pseudonym_seed: 's1' });
+  const seedB = await executeTool('pii_redactor', { text: 'key a@x.com', pseudonymize: true, pseudonym_seed: 's1' });
+  const seedC = await executeTool('pii_redactor', { text: 'key a@x.com', pseudonymize: true, pseudonym_seed: 's2' });
+  assert(seedA.detections_summary[0].surrogate === seedB.detections_summary[0].surrogate, 'PIIRedactor seeded surrogates are deterministic');
+  assert(seedA.detections_summary[0].surrogate !== seedC.detections_summary[0].surrogate, 'PIIRedactor surrogates differ across seeds');
+  assert(!JSON.stringify(seedA).includes('s1'), 'PIIRedactor never echoes the pseudonym seed');
+  const ibanRes = await executeTool('pii_redactor', { text: 'pay GB29NWBK60161331926819 or GB29NWBK60161331926818' });
+  assert(ibanRes.redactions_count === 1 && ibanRes.detections_summary[0].type === 'iban' && !ibanRes.redacted_text.includes('GB29NWBK60161331926819') && ibanRes.redacted_text.includes('GB29NWBK60161331926818'), 'PIIRedactor redacts mod-97-valid IBAN only');
+  assert(typeof ibanRes.detections_summary[0].confidence === 'number' && ibanRes.detections_summary[0].confidence > 0 && ibanRes.detections_summary[0].confidence <= 1, 'PIIRedactor reports confidence per detection');
 
   // 5. TermsScanner Test
   console.log('\n--- 5. Tool: terms_risk_scanner ---');
@@ -213,6 +255,41 @@ async function runTests() {
     sql_query: "SELECT DATE_TRUNC('hour', ts) AS hour, COUNT(*) AS n FROM logs GROUP BY DATE_TRUNC('hour', ts) ORDER BY hour"
   });
   assert(truncRes.ok === true && truncRes.rowCount === 2 && truncRes.rows[0].hour === '2026-10-29T13:00:00.000Z' && truncRes.rows[0].n === 2, 'DuckLog DATE_TRUNC buckets timestamps by hour');
+
+  // 14c. DuckLog follow-ups: percentiles, whole-set aggregates, HAVING, UNION, chained JOINs
+  const latLines = [];
+  for (let i = 1; i <= 10; i++) latLines.push(JSON.stringify({ latency_ms: i * 10, status: 200 }));
+  const pRes = await executeTool('duck_log', {
+    raw_logs: latLines.join('\n'),
+    sql_query: 'SELECT P50(latency_ms) AS p50, P95(latency_ms) AS p95 FROM logs'
+  });
+  assert(pRes.ok === true && pRes.rowCount === 1 && pRes.rows[0].p50 === 50 && pRes.rows[0].p95 === 100, 'DuckLog P50/P95 percentiles over the whole set');
+  const haveRes = await executeTool('duck_log', {
+    raw_logs: '{"status":200}\n{"status":200}\n{"status":500}',
+    sql_query: 'SELECT status, COUNT(*) AS n FROM logs GROUP BY status HAVING COUNT(*) > 1'
+  });
+  assert(haveRes.ok === true && haveRes.rowCount === 1 && Number(haveRes.rows[0].status) === 200, 'DuckLog HAVING filters grouped rows');
+  const unionRes = await executeTool('duck_log', {
+    raw_logs: '{"status":200}\n{"status":500}',
+    extra_tables: { old: '{"status":200}\n{"status":503}' },
+    sql_query: 'SELECT status FROM logs UNION SELECT status FROM old ORDER BY status'
+  });
+  assert(unionRes.ok === true && unionRes.rowCount === 3, 'DuckLog UNION dedupes combined arms');
+  const unionAllRes = await executeTool('duck_log', {
+    raw_logs: '{"status":200}',
+    extra_tables: { old: '{"status":200}' },
+    sql_query: 'SELECT status FROM logs UNION ALL SELECT status FROM old'
+  });
+  assert(unionAllRes.ok === true && unionAllRes.rowCount === 2, 'DuckLog UNION ALL keeps duplicates');
+  const chainRes = await executeTool('duck_log', {
+    raw_logs: '{"trace":"t1","path":"/pay"}',
+    extra_tables: {
+      errors: '{"trace":"t1","code":"E1"}',
+      owners: '{"code":"E1","team":"billing"}'
+    },
+    sql_query: 'SELECT logs.path AS path, owners.team AS team FROM logs JOIN errors ON logs.trace = errors.trace JOIN owners ON errors.code = owners.code'
+  });
+  assert(chainRes.ok === true && chainRes.rowCount === 1 && chainRes.rows[0].team === 'billing', 'DuckLog chains two JOINs across three tables');
 
   // 15. JwtVerifier Test (JWT Studio Pro)
   console.log('\n--- 15. Tool: jwt_verifier ---');

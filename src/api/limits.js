@@ -369,6 +369,9 @@ function enforceToolUsage(toolName, args) {
       if (strLen(a.baseline_csv) > lim.maxCsvChars || strLen(a.updated_csv) > lim.maxCsvChars) {
         fail('CSV exceeds max size of 500KB per sheet.');
       }
+      if (Array.isArray(a.primary_key) && a.primary_key.length > 10) {
+        fail('"primary_key" exceeds max of 10 composite columns.');
+      }
       break;
     }
     case 'duck_log': {
@@ -411,6 +414,9 @@ function enforceToolUsage(toolName, args) {
         for (const p of a.custom_patterns) {
           if (typeof p === 'string' && p.length > 200) fail('custom pattern exceeds max length of 200 chars.');
         }
+      }
+      if (typeof a.pseudonym_seed === 'string' && a.pseudonym_seed.length > 256) {
+        fail('pseudonym_seed exceeds max length of 256 chars.');
       }
       break;
     }

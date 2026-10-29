@@ -4,18 +4,22 @@
  * Cost: $0.002 / call
  */
 
-function parseCsv(text) {
+function parseCsv(text, delimiterOverride) {
   if (!text || typeof text !== 'string') return { headers: [], rows: [] };
   const lines = text.split(/\r?\n/).filter(l => l.trim().length > 0);
   if (lines.length === 0) return { headers: [], rows: [] };
 
-  const firstLine = lines[0];
-  const tabCount = (firstLine.match(/\t/g) || []).length;
-  const commaCount = (firstLine.match(/,/g) || []).length;
-  const semiCount = (firstLine.match(/;/g) || []).length;
   let delimiter = ',';
-  if (tabCount > commaCount && tabCount >= semiCount) delimiter = '\t';
-  else if (semiCount > commaCount && semiCount > tabCount) delimiter = ';';
+  if (typeof delimiterOverride === 'string' && delimiterOverride.length === 1) {
+    delimiter = delimiterOverride;
+  } else {
+    const firstLine = lines[0];
+    const tabCount = (firstLine.match(/\t/g) || []).length;
+    const commaCount = (firstLine.match(/,/g) || []).length;
+    const semiCount = (firstLine.match(/;/g) || []).length;
+    if (tabCount > commaCount && tabCount >= semiCount) delimiter = '\t';
+    else if (semiCount > commaCount && semiCount > tabCount) delimiter = ';';
+  }
 
   const parseLine = line => {
     const res = [];
@@ -84,22 +88,19 @@ function valuesEqual(valA, valB, caseSensitive, numericTolerance) {
   return caseSensitive ? sA === sB : sA.toLowerCase() === sB.toLowerCase();
 }
 
-function keyLabel(row, keyCol, idx) {
-  const raw = row[keyCol];
-  return raw !== undefined && raw !== null && String(raw) !== '' ? String(raw) : `row_${idx + 1}`;
-}
-
 // Rename heuristic: a removed column and an added column carrying identical
 // value vectors (row order included) are reported as one rename, not churn.
-function detectRenames(sheetA, sheetB, removed, added) {
+// Works on canonical names; value vectors come from caller-supplied getters
+// so header-case aliasing stays outside this function.
+function detectRenames(vecA, vecB, removed, added) {
   const renamed = [];
   const stillRemoved = [...removed];
   const stillAdded = [...added];
   for (const r of [...stillRemoved]) {
-    const vecR = sheetA.rows.map(row => String(row[r] !== undefined ? row[r] : ''));
+    const colR = vecA(r);
     const j = stillAdded.findIndex(a => {
-      const vecA = sheetB.rows.map(row => String(row[a] !== undefined ? row[a] : ''));
-      return vecA.length === vecR.length && vecA.every((v, i) => v === vecR[i]);
+      const colA = vecB(a);
+      return colA.length === colR.length && colA.every((v, i) => v === colR[i]);
     });
     if (j >= 0) {
       renamed.push({ from: r, to: stillAdded[j] });
@@ -111,7 +112,7 @@ function detectRenames(sheetA, sheetB, removed, added) {
 }
 
 function execute(args) {
-  const { baseline_csv, updated_csv, primary_key, case_sensitive, numeric_tolerance, detect_moves } = args;
+  const { baseline_csv, updated_csv, primary_key, case_sensitive, numeric_tolerance, detect_moves, delimiter, headers_case_sensitive } = args;
 
   if (!baseline_csv || !updated_csv) {
     throw new Error('Both "baseline_csv" and "updated_csv" strings are required.');
@@ -119,19 +120,49 @@ function execute(args) {
 
   const tolerance = typeof numeric_tolerance === 'number' && numeric_tolerance > 0 ? numeric_tolerance : 0;
   const movesOn = detect_moves !== false;
+  const headersCaseSensitive = headers_case_sensitive === true;
 
-  const sheetA = parseCsv(baseline_csv);
-  const sheetB = parseCsv(updated_csv);
+  const sheetA = parseCsv(baseline_csv, delimiter);
+  const sheetB = parseCsv(updated_csv, delimiter);
 
-  const allHeaders = [...sheetB.headers];
-  sheetA.headers.forEach(h => {
-    if (!allHeaders.includes(h)) allHeaders.push(h);
-  });
+  // Header canonicalization: `SKU` vs `sku` is the same column unless the
+  // caller opts into case-sensitive headers. First spelling wins on
+  // within-sheet collisions after lowering.
+  const normH = h => headersCaseSensitive ? String(h) : String(h).toLowerCase();
+  const canonA = new Map();
+  sheetA.headers.forEach(h => { const n = normH(h); if (!canonA.has(n)) canonA.set(n, h); });
+  const canonB = new Map();
+  sheetB.headers.forEach(h => { const n = normH(h); if (!canonB.has(n)) canonB.set(n, h); });
+  const canonHeaders = [...canonB.keys()];
+  canonA.forEach((orig, n) => { if (!canonB.has(n)) canonHeaders.push(n); });
+  const displayOf = n => canonB.get(n) !== undefined ? canonB.get(n) : canonA.get(n);
+  const cellOf = (row, alias, n) => {
+    const o = alias.get(n);
+    return o !== undefined && row[o] !== undefined ? row[o] : '';
+  };
 
-  const keyCol = primary_key || detectPrimaryKey(allHeaders, sheetB.rows);
+  // Primary key: single column or composite list, resolved through the same
+  // canonicalization so `primary_key: 'SKU'` matches a `sku` column.
+  const resolveKeyCol = name => normH(name);
+  let keyCols;
+  if (Array.isArray(primary_key) && primary_key.length > 0) keyCols = primary_key.map(resolveKeyCol);
+  else if (typeof primary_key === 'string' && primary_key) keyCols = [resolveKeyCol(primary_key)];
+  else keyCols = [normH(detectPrimaryKey(canonHeaders, sheetB.rows))];
+
   const normalize = val => {
     let s = String(val !== undefined && val !== null ? val : '').trim();
     return case_sensitive ? s : s.toLowerCase();
+  };
+  const compKey = (row, alias, idx) => keyCols.map(c => {
+    const o = alias.get(c);
+    return normalize(o !== undefined && row[o] !== undefined ? row[o] : idx);
+  }).join('\x00');
+  const keyDisplay = (row, alias, idx) => {
+    const parts = keyCols.map(c => {
+      const o = alias.get(c);
+      return o !== undefined && row[o] !== undefined ? String(row[o]) : '';
+    }).filter(s => s !== '');
+    return parts.length > 0 ? parts.join('|') : `row_${idx + 1}`;
   };
 
   // Duplicate primary keys used to last-win silently. Still last-win (stable
@@ -140,9 +171,9 @@ function execute(args) {
   const dupCountA = new Map();
   const firstRawA = new Map();
   sheetA.rows.forEach((row, idx) => {
-    const k = normalize(row[keyCol] !== undefined ? row[keyCol] : idx);
+    const k = compKey(row, canonA, idx);
     dupCountA.set(k, (dupCountA.get(k) || 0) + 1);
-    if (!firstRawA.has(k)) firstRawA.set(k, keyLabel(row, keyCol, idx));
+    if (!firstRawA.has(k)) firstRawA.set(k, keyDisplay(row, canonA, idx));
     mapA.set(k, { row, index: idx });
   });
 
@@ -156,9 +187,9 @@ function execute(args) {
   const firstRawB = new Map();
 
   sheetB.rows.forEach((rowB, idx) => {
-    const k = normalize(rowB[keyCol] !== undefined ? rowB[keyCol] : idx);
+    const k = compKey(rowB, canonB, idx);
     dupCountB.set(k, (dupCountB.get(k) || 0) + 1);
-    if (!firstRawB.has(k)) firstRawB.set(k, keyLabel(rowB, keyCol, idx));
+    if (!firstRawB.has(k)) firstRawB.set(k, keyDisplay(rowB, canonB, idx));
     processedKeys.add(k);
 
     if (mapA.has(k)) {
@@ -167,19 +198,19 @@ function execute(args) {
       const cellDiffs = {};
       let isMod = false;
 
-      allHeaders.forEach(col => {
-        const rawA = rowA[col] !== undefined ? rowA[col] : '';
-        const rawB = rowB[col] !== undefined ? rowB[col] : '';
+      canonHeaders.forEach(canon => {
+        const rawA = cellOf(rowA, canonA, canon);
+        const rawB = cellOf(rowB, canonB, canon);
         if (!valuesEqual(rawA, rawB, !!case_sensitive, tolerance)) {
           isMod = true;
-          cellDiffs[col] = { old_value: String(rawA), new_value: String(rawB) };
+          cellDiffs[displayOf(canon)] = { old_value: String(rawA), new_value: String(rawB) };
           total_cell_changes++;
         }
       });
 
       if (movesOn && itemA.index !== idx) {
         moved_rows.push({
-          key: keyLabel(rowB, keyCol, idx),
+          key: keyDisplay(rowB, canonB, idx),
           from_index: itemA.index,
           to_index: idx,
           row_data: rowB
@@ -188,7 +219,7 @@ function execute(args) {
 
       if (isMod) {
         modified_rows.push({
-          key: keyLabel(rowB, keyCol, idx),
+          key: keyDisplay(rowB, canonB, idx),
           cell_changes: cellDiffs,
           row_data: rowB
         });
@@ -197,7 +228,7 @@ function execute(args) {
       }
     } else {
       added_rows.push({
-        key: keyLabel(rowB, keyCol, idx),
+        key: keyDisplay(rowB, canonB, idx),
         row_data: rowB
       });
     }
@@ -205,10 +236,10 @@ function execute(args) {
 
   const deleted_rows = [];
   sheetA.rows.forEach((rowA, idx) => {
-    const k = normalize(rowA[keyCol] !== undefined ? rowA[keyCol] : idx);
+    const k = compKey(rowA, canonA, idx);
     if (!processedKeys.has(k)) {
       deleted_rows.push({
-        key: keyLabel(rowA, keyCol, idx),
+        key: keyDisplay(rowA, canonA, idx),
         row_data: rowA
       });
     }
@@ -227,16 +258,26 @@ function execute(args) {
     dupBaseline.reduce((n, d) => n + d.occurrences - 1, 0) +
     dupUpdated.reduce((n, d) => n + d.occurrences - 1, 0);
 
-  const schema_changes = detectRenames(
-    sheetA,
-    sheetB,
-    sheetA.headers.filter(h => !sheetB.headers.includes(h)),
-    sheetB.headers.filter(h => !sheetA.headers.includes(h))
+  const removedCanon = [...canonA.keys()].filter(n => !canonB.has(n));
+  const addedCanon = [...canonB.keys()].filter(n => !canonA.has(n));
+  const renames = detectRenames(
+    c => sheetA.rows.map(row => String(cellOf(row, canonA, c))),
+    c => sheetB.rows.map(row => String(cellOf(row, canonB, c))),
+    removedCanon,
+    addedCanon
   );
+  const schema_changes = {
+    added_columns: renames.added_columns.map(displayOf),
+    removed_columns: renames.removed_columns.map(displayOf),
+    renamed_columns: renames.renamed_columns.map(p => ({
+      from: canonA.get(p.from) !== undefined ? canonA.get(p.from) : p.from,
+      to: canonB.get(p.to) !== undefined ? canonB.get(p.to) : p.to,
+    })),
+  };
 
   return {
     success: true,
-    primary_key_used: keyCol,
+    primary_key_used: keyCols.map(displayOf).join('+'),
     stats: {
       baseline_total_rows: sheetA.rows.length,
       updated_total_rows: sheetB.rows.length,
@@ -267,8 +308,10 @@ module.exports = {
     properties: {
       baseline_csv: { type: 'string', description: 'Original CSV or TSV string' },
       updated_csv: { type: 'string', description: 'Updated/modified CSV or TSV string' },
-      primary_key: { type: 'string', description: 'Column name to match rows (e.g. "sku", "id", "email"). Auto-detected if omitted.' },
+      primary_key: { type: ['string', 'array'], description: 'Column name or list of columns to match rows (e.g. "sku" or ["warehouse", "sku"] for composite keys). Auto-detected if omitted.', items: { type: 'string' } },
       case_sensitive: { type: 'boolean', description: 'Whether string comparisons are case-sensitive. Default false.' },
+      delimiter: { type: 'string', enum: [',', '\t', ';', '|', ':'], description: 'Field delimiter override. Auto-detected (comma/tab/semicolon) if omitted.' },
+      headers_case_sensitive: { type: 'boolean', description: 'Treat "SKU" and "sku" as different columns. Default false (case-insensitive header matching).' },
       numeric_tolerance: { type: 'number', description: 'Absolute tolerance for numeric cell comparison ("10" vs "10.00" always equal; 10.00 vs 10.05 equal when tolerance >= 0.05). Default 0.' },
       detect_moves: { type: 'boolean', description: 'Report rows present in both sheets at different positions as moved_rows. Default true.' }
     },

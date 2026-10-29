@@ -14,6 +14,11 @@
  * - replacement_mask is length-capped and control-char stripped.
  * - allow_test_data lets reserved fictional values (555-01xx, RFC 2606
  *   domains) pass; custom_patterns adds caller regexes (capped + budgeted).
+ * - pseudonymize swaps the mask for deterministic per-value surrogates
+ *   ([EMAIL-1] ...) stable within the host process, or HMAC-derived and
+ *   cross-process stable with pseudonym_seed (never echoed).
+ * - IBANs are mod-97 validated like cards are Luhn-checked.
+ * - Every detection carries a heuristic confidence score (0-1).
  */
 
 function luhnValid(digits) {
@@ -39,6 +44,83 @@ function sanitizeMask(mask) {
   return mask.replace(/[\x00-\x1f\x7f]/g, '').slice(0, 64) || '[REDACTED]';
 }
 
+// IBAN mod-97 validation (ISO 13616): rearrange + numeric expand + mod 97.
+function ibanValid(compact) {
+  const s = String(compact).toUpperCase();
+  if (!/^[A-Z]{2}\d{2}[A-Z0-9]{11,30}$/.test(s) || s.length > 34) return false;
+  const rearranged = s.slice(4) + s.slice(0, 4);
+  let rem = 0;
+  for (const ch of rearranged) {
+    const code = ch >= '0' && ch <= '9' ? ch.charCodeAt(0) - 48 : ch.charCodeAt(0) - 55;
+    if (code < 0 || code > 35) return false;
+    rem = (rem * (code > 9 ? 100 : 10) + code) % 97;
+  }
+  return rem === 1;
+}
+
+// Heuristic per-type base confidence. Assignment-context API keys and
+// caller-defined patterns score lower: shape alone proves less.
+const CONFIDENCE_BASE = {
+  credit_card: 0.98,
+  email: 0.95,
+  ssn: 0.92,
+  phone: 0.85,
+  api_key: 0.9,
+  iban: 0.98,
+  custom: 0.6,
+};
+const CONFIDENCE_LABEL_RE = /(card|credit|email|e-mail|phone|tel|ssn|social|iban|account|api[_-]?key|secret|token|password)/i;
+
+// Deterministic pseudonym state: same raw value -> same surrogate within the
+// host process (FIFO-capped per type). With pseudonym_seed, surrogates are
+// HMAC-derived and stable across processes and documents.
+const PSEUDO_PREFIX = {
+  credit_card: 'CARD',
+  email: 'EMAIL',
+  ssn: 'SSN',
+  phone: 'PHONE',
+  api_key: 'APIKEY',
+  iban: 'IBAN',
+  custom: 'CUSTOM',
+};
+const MAX_PSEUDO_PER_TYPE = 10000;
+const pseudoSession = { counters: {}, maps: {} };
+let nodeCrypto = null;
+let nodeCryptoTried = false;
+function hmacToken(seed, type, raw) {
+  if (!nodeCryptoTried) {
+    nodeCryptoTried = true;
+    try {
+      // eslint-disable-next-line global-require
+      nodeCrypto = require('node:crypto');
+    } catch (_) {
+      nodeCrypto = null;
+    }
+  }
+  if (!nodeCrypto || typeof nodeCrypto.createHmac !== 'function') {
+    const err = new Error('"pseudonym_seed" requires a runtime with node:crypto (Node 18+ or Workers with nodejs_compat).');
+    err.statusCode = 400;
+    throw err;
+  }
+  return nodeCrypto.createHmac('sha256', seed).update(`${type}\x00${raw}`, 'utf8').digest('hex').slice(0, 12).toUpperCase();
+}
+function pseudoToken(type, raw, seed) {
+  const prefix = PSEUDO_PREFIX[type] || 'PII';
+  if (seed) return `[${prefix}-${hmacToken(seed, type, raw)}]`;
+  let map = pseudoSession.maps[type];
+  if (!map) {
+    map = new Map();
+    pseudoSession.maps[type] = map;
+    pseudoSession.counters[type] = 0;
+  }
+  if (!map.has(raw)) {
+    if (map.size >= MAX_PSEUDO_PER_TYPE) map.delete(map.keys().next().value);
+    pseudoSession.counters[type] += 1;
+    map.set(raw, `[${prefix}-${pseudoSession.counters[type]}]`);
+  }
+  return map.get(raw);
+}
+
 function execute(args) {
   const {
     text,
@@ -49,14 +131,24 @@ function execute(args) {
     redact_api_keys = true,
     replacement_mask = '[REDACTED]',
     allow_test_data = false,
-    custom_patterns = []
+    custom_patterns = [],
+    redact_iban = true,
+    pseudonymize = false,
+    pseudonym_seed = ''
   } = args;
 
   if (typeof text !== 'string') {
     throw new Error('"text" parameter must be a string.');
   }
+  if (typeof pseudonym_seed === 'string' && pseudonym_seed.length > 256) {
+    const err = new Error('"pseudonym_seed" exceeds max length of 256 chars.');
+    err.statusCode = 413;
+    throw err;
+  }
 
   const mask = sanitizeMask(replacement_mask);
+  const pseudoOn = pseudonymize === true;
+  const pseudoSeed = typeof pseudonym_seed === 'string' && pseudonym_seed ? pseudonym_seed : null;
 
   // Reserved fictional ranges (RFC 2606 documentation domains, NANP 555-01xx)
   // that `allow_test_data: true` lets through unredacted. Everything else —
@@ -82,8 +174,14 @@ function execute(args) {
   const claimed = [];
   const hits = [];
   const overlapsClaimed = (s, e) => claimed.some(c => s < c.end && e > c.start);
-  const pushHit = (type, raw, start, end, recordLast4) => {
+  const pushHit = (type, raw, start, end, recordLast4, confidence) => {
     const digits = String(raw).replace(/\D/g, '');
+    let conf = typeof confidence === 'number' ? confidence : (CONFIDENCE_BASE[type] !== undefined ? CONFIDENCE_BASE[type] : 0.5);
+    // Nearby field label ("card number:", "email:") raises confidence that
+    // the shape match is the real thing. Capped: heuristics never claim 1.0.
+    if (CONFIDENCE_LABEL_RE.test(text.slice(Math.max(0, start - 24), start))) {
+      conf = Math.min(0.99, conf + 0.04);
+    }
     hits.push({
       type,
       length: String(raw).length,
@@ -92,11 +190,12 @@ function execute(args) {
       last4: recordLast4 !== false && digits.length >= 4 ? digits.slice(-4) : undefined,
       start,
       end,
+      confidence: Math.round(conf * 100) / 100,
     });
   };
 
   const collect = (re, type, opts = {}) => {
-    const { valueGroup = 0, accept = null, rawOf = null, recordLast4 = true, deadlineMs = 0 } = opts;
+    const { valueGroup = 0, accept = null, rawOf = null, recordLast4 = true, confidence, deadlineMs = 0 } = opts;
     re.lastIndex = 0;
     let m;
     let guard = 0;
@@ -127,7 +226,7 @@ function execute(args) {
       if (allow_test_data === true && isTestData(type, m[0])) continue;
       claimed.push({ start, end });
       const spanText = text.slice(start, end);
-      pushHit(type, rawOf ? rawOf(m, spanText) : spanText, start, end, recordLast4);
+      pushHit(type, rawOf ? rawOf(m, spanText) : spanText, start, end, recordLast4, confidence);
       hits[hits.length - 1].prefix = prefix;
     }
   };
@@ -167,6 +266,15 @@ function execute(args) {
     });
   }
 
+  // 4b. IBANs (ISO 13616): shape match + mod-97 checksum, like Luhn for cards.
+  // Spaced groups ("GB29 NWBK 6016...") are accepted; offsets cover the span.
+  if (redact_iban) {
+    collect(/\b[A-Z]{2}\d{2}[A-Z0-9 ]{11,34}\b/g, 'iban', {
+      rawOf: (m) => m[0].replace(/\s/g, ''),
+      accept: (m) => ibanValid(m[0].replace(/\s/g, '')),
+    });
+  }
+
   // 5. API keys & tokens — extended provider coverage + generic assignment.
   if (redact_api_keys) {
     const patterns = [
@@ -186,7 +294,8 @@ function execute(args) {
     ];
     for (const re of patterns) collect(re, 'api_key');
     // Generic `key = value` / `"secret": "value"` high-entropy assignment.
-    collect(/(?:"?(?:api[_-]?key|secret|token|password|passwd|pwd)"?\s*[:=]\s*["']?)([A-Za-z0-9\-._~+/=]{16,})(["']?)/gi, 'api_key', { valueGroup: 1 });
+    // Lower confidence: shape alone (no provider prefix) proves less.
+    collect(/(?:"?(?:api[_-]?key|secret|token|password|passwd|pwd)"?\s*[:=]\s*["']?)([A-Za-z0-9\-._~+/=]{16,})(["']?)/gi, 'api_key', { valueGroup: 1, confidence: 0.75 });
   }
 
   // 6. Caller-supplied patterns for domain-specific secret shapes. Whole
@@ -218,10 +327,19 @@ function execute(args) {
     });
   }
 
-  // Splice back-to-front so original offsets stay valid throughout.
+  // Splice back-to-front so original offsets stay valid throughout. With
+  // pseudonymize, the mask is replaced by a deterministic per-value surrogate
+  // ([EMAIL-1], or HMAC-derived with pseudonym_seed) so scrubbed documents
+  // stay joinable across calls and files.
   let sanitized = text;
   for (const h of [...hits].sort((a, b) => b.start - a.start)) {
-    sanitized = sanitized.slice(0, h.start) + (h.prefix || '') + mask + sanitized.slice(h.end);
+    let repl = mask;
+    if (pseudoOn) {
+      const rawForToken = text.slice(h.start, h.end);
+      h.surrogate = pseudoToken(h.type, rawForToken, pseudoSeed);
+      repl = h.surrogate;
+    }
+    sanitized = sanitized.slice(0, h.start) + (h.prefix || '') + repl + sanitized.slice(h.end);
   }
 
   return {
@@ -234,6 +352,8 @@ function execute(args) {
       last4: h.last4,
       start: h.start,
       end: h.end,
+      confidence: h.confidence,
+      surrogate: h.surrogate,
     })),
   };
 }
@@ -254,7 +374,10 @@ module.exports = {
       redact_api_keys: { type: 'boolean', description: 'Redact API tokens and secret keys. Default true.' },
       replacement_mask: { type: 'string', description: 'Replacement string, max 64 chars. Default "[REDACTED]".' },
       allow_test_data: { type: 'boolean', description: 'Let reserved fictional values (555-01xx numbers, example.com/.test addresses) pass unredacted. Default false.' },
-      custom_patterns: { type: 'array', description: 'Extra regex sources for domain-specific secret shapes (max 20 patterns, 200 chars each). Matched text is redacted as type "custom".', items: { type: 'string' } }
+      custom_patterns: { type: 'array', description: 'Extra regex sources for domain-specific secret shapes (max 20 patterns, 200 chars each). Matched text is redacted as type "custom".', items: { type: 'string' } },
+      redact_iban: { type: 'boolean', description: 'Redact mod-97-validated IBANs. Default true.' },
+      pseudonymize: { type: 'boolean', description: 'Replace the mask with deterministic per-value surrogates ([EMAIL-1]) so scrubbed documents stay joinable. Default false.' },
+      pseudonym_seed: { type: 'string', description: 'Optional seed making surrogates HMAC-derived and stable across processes/documents (max 256 chars, never echoed). Without it, surrogates are sequential within the host process.' }
     },
     required: ['text']
   },
