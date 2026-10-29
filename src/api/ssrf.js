@@ -443,15 +443,19 @@ async function fetchAuditTarget(startUrl, opts = {}) {
     transport === 'pinned' || (transport === 'auto' && !fetchFn && nodeHttpModules() !== null);
   const activeFetch = fetchFn || fetch;
 
+  // Redirect trail for audit reporting (hop URLs + statuses only).
+  const redirectChain = [];
+
   if (usePinned) {
     // Pinned-socket loop: resolve + public-check + connect-to-pinned-IP
     // per hop. No separate assert step needed — pinnedGet resolves itself.
     for (let hop = 0; hop <= maxRedirects; hop += 1) {
       const got = await pinnedGet(current, { timeoutMs, maxBodyBytes, headers, dnsLookup });
+      redirectChain.push({ url: current, status: got.status });
       if (got.status >= 300 && got.status < 400) {
         if (hop === maxRedirects) fail('Too many redirects.');
         const location = got.getHeader('location');
-        if (!location) return { response: null, bodyText: got.bodyText, finalUrl: current, redirectHops: hop };
+        if (!location) return { response: null, bodyText: got.bodyText, finalUrl: current, redirectHops: hop, redirectChain };
         let next;
         try {
           next = new URL(location, current).href;
@@ -461,7 +465,7 @@ async function fetchAuditTarget(startUrl, opts = {}) {
         current = validateAuditUrl(next, { allowedPorts });
         continue;
       }
-      return { response: null, bodyText: got.bodyText, finalUrl: current, redirectHops: hop, status: got.status, getHeader: got.getHeader };
+      return { response: null, bodyText: got.bodyText, finalUrl: current, redirectHops: hop, redirectChain, status: got.status, getHeader: got.getHeader };
     }
     fail('Too many redirects.');
   }
@@ -483,13 +487,14 @@ async function fetchAuditTarget(startUrl, opts = {}) {
       clearTimeout(timer);
     }
     const status = response.status;
+    redirectChain.push({ url: current, status });
     if (status >= 300 && status < 400) {
       if (hop === maxRedirects) {
         fail('Too many redirects.');
       }
       const location =
         typeof response.headers?.get === 'function' ? response.headers.get('Location') : null;
-      if (!location) return { response, bodyText: await readCappedBody(response, maxBodyBytes), finalUrl: current, redirectHops: hop };
+      if (!location) return { response, bodyText: await readCappedBody(response, maxBodyBytes), finalUrl: current, redirectHops: hop, redirectChain };
       // Resolve relative redirects against the current URL, then re-validate.
       let next;
       try {
@@ -507,7 +512,7 @@ async function fetchAuditTarget(startUrl, opts = {}) {
       continue;
     }
     const bodyText = await readCappedBody(response, maxBodyBytes);
-    return { response, bodyText, finalUrl: current, redirectHops: hop };
+    return { response, bodyText, finalUrl: current, redirectHops: hop, redirectChain };
   }
   fail('Too many redirects.');
 }

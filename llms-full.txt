@@ -46,7 +46,8 @@ Content-Type: application/json
   "strip_tracking_urls": true,
   "fix_line_wraps": true,
   "straighten_quotes": true,
-  "remove_invisible_chars": true
+  "remove_invisible_chars": true,
+  "strip_html_tags": true
 }
 ```
 
@@ -83,7 +84,8 @@ Content-Type: application/json
 * **Input Schema:**
 ```json
 {
-  "terms_text": "string"
+  "terms_text": "string",
+  "custom_rules": "[{ id, pattern, severity }]"
 }
 ```
 
@@ -144,7 +146,7 @@ Content-Type: application/json
 
 ## 8. WebAuditor (`website_health_auditor`)
 * **Cost:** Free ($0.00)
-* **Description:** Checks a live website for HSTS, CSP, X-Frame-Options security headers, and Open Graph tags.
+* **Description:** Checks a live website for HSTS, CSP, X-Frame-Options security headers with value-aware scoring, redirect-chain reporting, and Open Graph tags.
 * **Endpoint:** `POST /v1/tools/website_health_auditor`
 * **Input Schema:**
 ```json
@@ -178,7 +180,7 @@ Content-Type: application/json
 * **Input Schema:**
 ```json
 {
-  "mode": "fill | merge | inspect | sample",
+  "mode": "fill | merge | split | watermark | inspect | sample",
   "pdf_base64": "string",
   "pdf_list": ["base64..."],
   "fields": [
@@ -211,10 +213,11 @@ Content-Type: application/json
 * **Input Schema:**
 ```json
 {
-  "provider": "stripe",
+  "provider": "auto (stripe|github|shopify|slack|svix|paddle)",
   "payload": "string",
   "secret": "string",
-  "received_signature": "string"
+  "received_signature": "string",
+  "timestamp_tolerance_sec": 300
 }
 ```
 

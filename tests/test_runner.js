@@ -104,6 +104,15 @@ async function runTests() {
   });
   assert(!cleanRes.cleaned_text.includes('utm_source'), 'TextCleaner stripped UTM tracking');
 
+  // 3b. TextCleaner follow-ups: wrap counts, new tracking keys, HTML stripping
+  const wrapRes = await executeTool('text_cleaner', { text: 'line one\ncontinued here and\nmore text\n\nNew para' });
+  assert(wrapRes.stats.line_wraps_fixed === 2 && wrapRes.cleaned_text.includes('line one continued here and more text'), 'TextCleaner counts every fixed line wrap');
+  const keyRes = await executeTool('text_cleaner', { text: 'See https://example.com/a?gbraid=abc&dclid=x&ttclid=y&q=keep' });
+  assert(!keyRes.cleaned_text.includes('gbraid') && !keyRes.cleaned_text.includes('dclid') && !keyRes.cleaned_text.includes('ttclid') && keyRes.cleaned_text.includes('q=keep'), 'TextCleaner strips newer ad click IDs, keeps real params');
+  const htmlRes = await executeTool('text_cleaner', { text: '<p>Hello <b>World</b></p><script>var x = 1;</script>' });
+  assert(!htmlRes.cleaned_text.includes('<') && htmlRes.cleaned_text.includes('Hello') && htmlRes.cleaned_text.includes('World') && !htmlRes.cleaned_text.includes('var x'), 'TextCleaner strips HTML tags and script content');
+  assert(htmlRes.stats.html_tags_removed > 0, 'TextCleaner reports stripped tag count');
+
   // 4. PIIRedactor Test
   console.log('\n--- 4. Tool: pii_redactor ---');
   const redactRes = await executeTool('pii_redactor', {
@@ -150,6 +159,18 @@ async function runTests() {
   });
   assert(termsRes.total_flags_detected >= 2, 'TermsScanner detected arbitration & AI training');
 
+  // 5b. TermsScanner follow-ups: negation guard, custom rules, risk score
+  const negRes = await executeTool('terms_risk_scanner', {
+    terms_text: 'We will never train AI models on your data. All disputes must be resolved by binding arbitration.'
+  });
+  assert(negRes.total_flags_detected === 1 && negRes.negated_flags.length === 1 && negRes.negated_flags[0].id === 'ai_data_harvesting', 'TermsScanner moves negated AI-training language out of risk counts');
+  const custRuleRes = await executeTool('terms_risk_scanner', {
+    terms_text: 'A $500 early termination fee applies. All disputes must be resolved by binding arbitration.',
+    custom_rules: [{ id: 'early_fee', pattern: 'early termination fee', severity: 'MEDIUM', title: 'Early Termination Fee' }]
+  });
+  assert(custRuleRes.total_flags_detected === 2 && custRuleRes.red_flags.some(f => f.id === 'early_fee'), 'TermsScanner fires caller-defined custom rules');
+  assert(typeof custRuleRes.risk_score === 'number' && custRuleRes.risk_score === 40, 'TermsScanner risk score weights HIGH=30 + MEDIUM=10');
+
   // 6. ReceiptParser Test
   console.log('\n--- 6. Tool: receipt_parser ---');
   const receiptRes = await executeTool('receipt_parser', {
@@ -158,6 +179,19 @@ async function runTests() {
   assert(receiptRes.data.vendor === 'AMAZON WEB SERVICES', 'ReceiptParser detected AWS');
   assert(receiptRes.data.total_amount === 150.00, 'ReceiptParser parsed total $150.00');
 
+  // 6b. ReceiptParser follow-ups: whole amounts, vendors, ISO dates, confidence
+  const wholeRes = await executeTool('receipt_parser', {
+    document_text: 'DOORDASH\nDate: Oct 5, 2026\nTotal Due: $42'
+  });
+  assert(wholeRes.data.total_amount === 42, 'ReceiptParser parses whole-dollar totals with a currency symbol');
+  assert(wholeRes.data.vendor === 'DOORDASH' && wholeRes.data.category === 'Food & Delivery', 'ReceiptParser classifies food vendors');
+  assert(wholeRes.data.date === '2026-10-05' && wholeRes.data.date_raw === 'Oct 5, 2026', 'ReceiptParser normalizes dates to ISO with raw kept');
+  assert(wholeRes.data.confidence && wholeRes.data.confidence.vendor === 0.85 && wholeRes.data.confidence.total_amount === 0.7, 'ReceiptParser reports per-field confidence');
+  const noFalseTotal = await executeTool('receipt_parser', {
+    document_text: 'ACME\nOrder 150\nDate: 2026-10-15'
+  });
+  assert(noFalseTotal.data.total_amount === null, 'ReceiptParser never mistakes bare integers for totals');
+
   // 7. InvoiceBuilder Test
   console.log('\n--- 7. Tool: invoice_builder ---');
   const invRes = await executeTool('invoice_builder', {
@@ -165,6 +199,10 @@ async function runTests() {
     tax_percent: 10
   });
   assert(invRes.totals.grand_total === 1100, 'InvoiceBuilder computed grand total with tax $1100');
+  const floatRes = await executeTool('invoice_builder', {
+    items: [{ description: 'A', quantity: 1, rate: 0.1 }, { description: 'B', quantity: 1, rate: 0.2 }]
+  });
+  assert(floatRes.totals.subtotal === 0.3 && floatRes.totals.grand_total === 0.3, 'InvoiceBuilder rounds ledger math to exact cents');
 
   // 8. OGCardGenerator Test
   console.log('\n--- 8. Tool: og_card_generator ---');
@@ -174,6 +212,26 @@ async function runTests() {
   });
   assert(ogRes.svg_card.includes('<svg'), 'OGCardGenerator produced valid SVG');
 
+  // 8b. OGCard follow-ups: word-wrap, strict theme
+  const wrapOg = await executeTool('og_card_generator', {
+    title: 'Alpha Beta Gamma Delta Epsilon Zeta Eta Theta Iota Kappa Lambda Mu',
+    description: 'one two three four five six seven eight nine ten eleven twelve thirteen fourteen fifteen sixteen'
+  });
+  const words = ['Alpha', 'Beta', 'Gamma', 'Delta', 'Epsilon', 'Zeta', 'Eta', 'Theta', 'Iota', 'Kappa', 'Lambda', 'Mu'];
+  assert(words.every(w => wrapOg.svg_card.includes(w)), 'OGCardGenerator wraps the full title without clipping words');
+  assert(!wrapOg.svg_card.includes('Alph</text>') && !wrapOg.svg_card.includes('Gam</text>'), 'OGCardGenerator never truncates mid-word');
+  await executeTool('og_card_generator', { title: 'x' }).then(
+    () => assert(true, 'OGCardGenerator default theme renders'),
+    () => assert(false, 'OGCardGenerator default theme renders')
+  );
+  let themeRejected = false;
+  try {
+    await executeTool('og_card_generator', { title: 'x', theme: 'hacker' });
+  } catch (e) {
+    themeRejected = e && e.statusCode === 400;
+  }
+  assert(themeRejected, 'OGCardGenerator rejects unknown theme with 400');
+
   // 9. CodeCardGenerator Test (QuickShot)
   console.log('\n--- 9. Tool: code_card_generator ---');
   const codeRes = await executeTool('code_card_generator', {
@@ -182,6 +240,16 @@ async function runTests() {
     title: 'agent.js'
   });
   assert(codeRes.svg_code_card.includes('<svg') && codeRes.total_lines === 2, 'CodeCardGenerator rendered 2-line code card SVG');
+
+  // 9b. CodeCard follow-up: tokens actually highlighted
+  const hlRes = await executeTool('code_card_generator', {
+    code: 'const greeting = "hi"; // say hi',
+    language: 'javascript',
+    title: 'agent.js'
+  });
+  assert(hlRes.svg_code_card.includes('<tspan fill="#a78bfa">const</tspan>'), 'CodeCardGenerator tints keywords');
+  assert(hlRes.svg_code_card.includes('<tspan fill="#34d399">&quot;hi&quot;</tspan>'), 'CodeCardGenerator tints strings without splitting them');
+  assert(hlRes.svg_code_card.includes('<tspan fill="#64748b">// say hi</tspan>'), 'CodeCardGenerator tints full-line comments over inner quotes');
 
   // 10. PDFProcessor Test (DocuMerge, DocuFiller, SignEasy)
   console.log('\n--- 10. Tool: pdf_processor ---');
@@ -197,6 +265,22 @@ async function runTests() {
     ]
   });
   assert(fillPdfRes.annotations_count === 2, 'PDFProcessor applied 2 vector annotations');
+
+  // 10b. PDFProcessor follow-ups: split + watermark (README parity)
+  const merge2 = await executeTool('pdf_processor', { mode: 'merge', pdf_list: [samplePdfRes.pdf_base64, samplePdfRes.pdf_base64] });
+  assert(merge2.total_pages === 2, 'PDFProcessor merged 2 samples into 2 pages');
+  const splitRes = await executeTool('pdf_processor', { mode: 'split', pdf_base64: merge2.pdf_base64, pages: '2' });
+  assert(splitRes.success && splitRes.total_pages === 1 && splitRes.pages[0] === 2, 'PDFProcessor split extracts page 2');
+  const wmRes = await executeTool('pdf_processor', { mode: 'watermark', pdf_base64: samplePdfRes.pdf_base64, watermark_text: 'DRAFT' });
+  const wmInspect = await executeTool('pdf_processor', { mode: 'inspect', pdf_base64: wmRes.pdf_base64 });
+  assert(wmRes.success && wmInspect.page_count === 1 && wmRes.size_bytes > samplePdfRes.size_bytes, 'PDFProcessor watermark stamps a still-valid PDF');
+  let splitRejected = false;
+  try {
+    await executeTool('pdf_processor', { mode: 'split', pdf_base64: samplePdfRes.pdf_base64, pages: '9' });
+  } catch (e) {
+    splitRejected = e && e.statusCode === 400;
+  }
+  assert(splitRejected, 'PDFProcessor split rejects out-of-range pages with 400');
 
   // 11. JSONDiff Test (JSON Diff Studio)
   console.log('\n--- 11. Tool: json_diff ---');
@@ -214,6 +298,34 @@ async function runTests() {
     secret: 'whsec_test_secret_key_12345'
   });
   assert(whRes.signatureHeaderValue.includes('t='), 'WebhookVerifier generated valid Stripe timestamped signature');
+
+  // 12b. WebhookVerifier follow-ups: auto-detect + replay tolerance
+  const autoRes = await executeTool('webhook_verifier', {
+    payload: JSON.stringify({ event: 'payment_intent.succeeded', amount: 5000 }),
+    secret: 'whsec_test_secret_key_12345',
+    received_signature: whRes.signatureHeaderValue
+  });
+  assert(autoRes.provider === 'stripe' && autoRes.providerDetected === true && autoRes.verification && autoRes.verification.isValid === true, 'WebhookVerifier auto-detects Stripe and verifies');
+  const staleTs = Math.floor(Date.now() / 1000) - 3600;
+  const staleMint = await executeTool('webhook_verifier', {
+    provider: 'stripe',
+    payload: JSON.stringify({ event: 'x' }),
+    secret: 'whsec_test_secret_key_12345',
+    timestamp: staleTs
+  });
+  const staleDefault = await executeTool('webhook_verifier', {
+    payload: JSON.stringify({ event: 'x' }),
+    secret: 'whsec_test_secret_key_12345',
+    received_signature: staleMint.signatureHeaderValue
+  });
+  assert(staleDefault.verification.isReplayRisk === true, 'WebhookVerifier flags hour-old signatures by default');
+  const staleWide = await executeTool('webhook_verifier', {
+    payload: JSON.stringify({ event: 'x' }),
+    secret: 'whsec_test_secret_key_12345',
+    received_signature: staleMint.signatureHeaderValue,
+    timestamp_tolerance_sec: 7200
+  });
+  assert(staleWide.verification.timestampOk === true && staleWide.verification.isReplayRisk === false, 'WebhookVerifier honors custom replay tolerance');
 
   // 13. EnvMatrix Test (EnvMatrix)
   console.log('\n--- 13. Tool: env_matrix ---');

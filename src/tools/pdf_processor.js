@@ -1,6 +1,7 @@
 /**
  * PDFProcessor Agent Tool
- * Headless PDF merging, vector form-filling, checkbox stamping & metadata inspection
+ * Headless PDF merging, splitting, vector form-filling, checkbox stamping,
+ * diagonal watermarks & metadata inspection
  * Cost: $0.005 / call
  */
 
@@ -100,7 +101,7 @@ async function execute(args, opts = {}) {
       throw err;
     }
   };
-  const { mode = 'inspect', pdf_base64, pdf_list = [], fields = [], rotation = 0 } = args;
+  const { mode = 'inspect', pdf_base64, pdf_list = [], fields = [], rotation = 0, pages, watermark_text, watermark_opacity } = args;
 
   // 1. Mode: Merge
   if (mode === 'merge') {
@@ -202,7 +203,116 @@ async function execute(args, opts = {}) {
     };
   }
 
-  // 3. Mode: Inspect / Sample Generator
+  // 3. Mode: Split (extract pages)
+  if (mode === 'split') {
+    if (!pdf_base64) {
+      throw new Error('"pdf_base64" string is required for split mode.');
+    }
+    if (typeof pages !== 'string' || !pages.trim()) {
+      const err = new Error('"pages" must be a non-empty string like "1-3,5" (1-indexed).');
+      err.statusCode = 400;
+      throw err;
+    }
+    const rawBytes = decodePdfInput(pdf_base64);
+    const srcDoc = await loadPdf(rawBytes);
+    const pageCount = srcDoc.getPageCount();
+    if (pageCount > MAX_PAGES) fail413(`PDF exceeds max of ${MAX_PAGES} pages.`);
+    const picked = [];
+    for (const part of pages.split(',')) {
+      const m = part.trim().match(/^(\d+)(?:\s*-\s*(\d+))?$/);
+      if (!m) {
+        const err = new Error('Invalid "pages" spec. Use comma-separated numbers/ranges like "1-3,5".');
+        err.statusCode = 400;
+        throw err;
+      }
+      const a = parseInt(m[1], 10);
+      const b = m[2] ? parseInt(m[2], 10) : a;
+      if (a < 1 || b < 1 || b < a) {
+        const err = new Error('Invalid "pages" spec. Use comma-separated numbers/ranges like "1-3,5".');
+        err.statusCode = 400;
+        throw err;
+      }
+      for (let p = a; p <= b; p++) {
+        if (p > pageCount) {
+          const err = new Error(`"pages" exceeds document page count of ${pageCount}.`);
+          err.statusCode = 400;
+          throw err;
+        }
+        if (!picked.includes(p)) picked.push(p);
+      }
+      if (picked.length > MAX_PAGES) fail413(`Split exceeds max of ${MAX_PAGES} pages.`);
+    }
+    if (picked.length === 0) {
+      const err = new Error('Invalid "pages" spec. Use comma-separated numbers/ranges like "1-3,5".');
+      err.statusCode = 400;
+      throw err;
+    }
+    checkAborted();
+    const outDoc = await PDFDocument.create();
+    const copied = await outDoc.copyPages(srcDoc, picked.map(p => p - 1));
+    copied.forEach(pg => outDoc.addPage(pg));
+    const outputBytes = await outDoc.save();
+    return {
+      success: true,
+      mode: 'split',
+      pages: picked,
+      total_pages: picked.length,
+      pdf_base64: Buffer.from(outputBytes).toString('base64'),
+      size_bytes: outputBytes.length
+    };
+  }
+
+  // 4. Mode: Watermark (diagonal semi-transparent text stamp, all pages)
+  if (mode === 'watermark') {
+    if (!pdf_base64) {
+      throw new Error('"pdf_base64" string is required for watermark mode.');
+    }
+    if (typeof watermark_text !== 'string' || !watermark_text.trim()) {
+      const err = new Error('"watermark_text" is required for watermark mode.');
+      err.statusCode = 400;
+      throw err;
+    }
+    if (watermark_text.length > 200) fail413('Watermark text exceeds max length of 200 chars.');
+    if (watermark_opacity !== undefined && (typeof watermark_opacity !== 'number' || watermark_opacity < 0.05 || watermark_opacity > 0.5)) {
+      const err = new Error('"watermark_opacity" must be a number between 0.05 and 0.5.');
+      err.statusCode = 400;
+      throw err;
+    }
+    const rawBytes = decodePdfInput(pdf_base64);
+    const doc = await loadPdf(rawBytes);
+    const numPages = doc.getPageCount();
+    if (numPages > MAX_PAGES) fail413(`PDF exceeds max of ${MAX_PAGES} pages.`);
+    const font = await doc.embedFont(StandardFonts.HelveticaBold);
+    const stamp = watermark_text.trim();
+    const opacity = watermark_opacity === undefined ? 0.15 : watermark_opacity;
+    for (let i = 0; i < numPages; i++) {
+      checkAborted();
+      const page = doc.getPage(i);
+      const { width, height } = page.getSize();
+      const size = Math.max(24, Math.min(width, height) / 6);
+      const tw = font.widthOfTextAtSize(stamp, size);
+      const ang = Math.PI / 4;
+      page.drawText(stamp, {
+        x: width / 2 - (tw / 2) * Math.cos(ang),
+        y: height / 2 - (tw / 2) * Math.sin(ang),
+        size,
+        font,
+        rotate: degrees(45),
+        opacity,
+        color: rgb(0.4, 0.4, 0.4)
+      });
+    }
+    const outputBytes = await doc.save();
+    return {
+      success: true,
+      mode: 'watermark',
+      total_pages: numPages,
+      pdf_base64: Buffer.from(outputBytes).toString('base64'),
+      size_bytes: outputBytes.length
+    };
+  }
+
+  // 5. Mode: Inspect / Sample Generator
   if (mode === 'sample') {
     const doc = await PDFDocument.create();
     const page = doc.addPage([595.28, 841.89]);
@@ -249,13 +359,13 @@ async function execute(args, opts = {}) {
 
 module.exports = {
   name: 'pdf_processor',
-  description: 'Headless PDF engine: merges multiple PDFs, fills flat form fields at exact coordinate percentages, stamps checkmarks, and inspects page counts.',
+  description: 'Headless PDF engine: merges/splits PDFs, fills flat form fields at exact coordinate percentages, stamps checkmarks and diagonal watermarks, and inspects page counts.',
   free: true,
   cost_usd: 0.00,
   parameters: {
     type: 'object',
     properties: {
-      mode: { type: 'string', enum: ['merge', 'fill', 'inspect', 'sample'], description: 'Operation mode. Default "inspect".' },
+      mode: { type: 'string', enum: ['merge', 'split', 'fill', 'watermark', 'inspect', 'sample'], description: 'Operation mode. Default "inspect".' },
       pdf_base64: { type: 'string', description: 'Base64 encoded PDF string' },
       pdf_list: { type: 'array', items: { type: 'string' }, description: 'Array of base64 PDF strings for "merge" mode' },
       fields: {
@@ -274,7 +384,10 @@ module.exports = {
         },
         description: 'Array of fields and checkmarks to stamp onto PDF'
       },
-      rotation: { type: 'number', description: 'Optional rotation in degrees (90, 180, 270) for merged pages' }
+      rotation: { type: 'number', description: 'Optional rotation in degrees (90, 180, 270) for merged pages' },
+      pages: { type: 'string', description: '1-indexed page selection for "split" mode, e.g. "1-3,5".' },
+      watermark_text: { type: 'string', description: 'Stamp text for "watermark" mode (max 200 chars).' },
+      watermark_opacity: { type: 'number', description: 'Watermark opacity 0.05-0.5. Default 0.15.' }
     }
   },
   execute

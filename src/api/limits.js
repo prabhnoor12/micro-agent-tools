@@ -362,6 +362,7 @@ function enforceToolUsage(toolName, args) {
       if (biggest > 8 * 1024 * 1024) fail('PDF payload exceeds max decoded size of 8MB.');
       const totalChars = strLen(a.pdf_base64) + (Array.isArray(a.pdf_list) ? a.pdf_list.reduce((n, s) => n + strLen(typeof s === 'string' ? s : ''), 0) : 0);
       if (totalChars > lim.maxBodyChars) fail('PDF payload exceeds max request size.');
+      if (typeof a.watermark_text === 'string' && a.watermark_text.length > 200) fail('Watermark text exceeds max length of 200 chars.');
       break;
     }
     case 'sheet_diff': {
@@ -422,6 +423,12 @@ function enforceToolUsage(toolName, args) {
     }
     case 'terms_risk_scanner':
       if (strLen(a.terms_text) > TOOL_USAGE_LIMITS.terms_risk_scanner.maxChars) fail('terms_text exceeds max size of 200KB.');
+      if (Array.isArray(a.custom_rules)) {
+        if (a.custom_rules.length > 20) fail('custom_rules exceeds max of 20 rules.');
+        for (const r of a.custom_rules) {
+          if (r && typeof r.pattern === 'string' && r.pattern.length > 500) fail('custom rule pattern exceeds max length of 500 chars.');
+        }
+      }
       break;
     case 'receipt_parser':
       if (strLen(a.document_text) > TOOL_USAGE_LIMITS.receipt_parser.maxChars) fail('document_text exceeds max size of 100KB.');
@@ -455,6 +462,9 @@ function enforceToolUsage(toolName, args) {
     case 'webhook_verifier': {
       const payloadLen = typeof a.payload === 'string' ? a.payload.length : strLen(JSON.stringify(a.payload || ''));
       if (payloadLen > TOOL_USAGE_LIMITS.webhook_verifier.maxPayloadChars) fail('payload exceeds max size of 200KB.');
+      if (typeof a.timestamp_tolerance_sec === 'number' && (a.timestamp_tolerance_sec < 1 || a.timestamp_tolerance_sec > 86400)) {
+        fail('timestamp_tolerance_sec must be between 1 and 86400.');
+      }
       break;
     }
     case 'invoice_builder':

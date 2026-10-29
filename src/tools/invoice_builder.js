@@ -20,12 +20,15 @@ function execute(args) {
     payment_instructions = ''
   } = args;
 
+  // Cent-accurate money math: round every ledger step so binary float
+  // artifacts (0.1 + 0.2 = 0.30000000000000004) never reach the totals.
+  const round2 = n => Math.round((Number(n) || 0) * 100) / 100;
   let subtotal = 0;
   const computedItems = items.map(it => {
     const qty = parseFloat(it.quantity) || 1;
     const rate = parseFloat(it.rate) || 0;
-    const amount = qty * rate;
-    subtotal += amount;
+    const amount = round2(qty * rate);
+    subtotal = round2(subtotal + amount);
     return {
       description: it.description || 'Service',
       quantity: qty,
@@ -34,10 +37,10 @@ function execute(args) {
     };
   });
 
-  const discountAmount = subtotal * ((parseFloat(discount_percent) || 0) / 100);
-  const taxableBase = Math.max(0, subtotal - discountAmount);
-  const taxAmount = taxableBase * ((parseFloat(tax_percent) || 0) / 100);
-  const grandTotal = taxableBase + taxAmount + (parseFloat(shipping) || 0);
+  const discountAmount = round2(subtotal * ((parseFloat(discount_percent) || 0) / 100));
+  const taxableBase = Math.max(0, round2(subtotal - discountAmount));
+  const taxAmount = round2(taxableBase * ((parseFloat(tax_percent) || 0) / 100));
+  const grandTotal = round2(taxableBase + taxAmount + (parseFloat(shipping) || 0));
 
   const format = val => `${currency}${val.toFixed(2)}`;
 
@@ -69,7 +72,7 @@ function execute(args) {
       subtotal,
       discount_amount: discountAmount,
       tax_amount: taxAmount,
-      shipping: parseFloat(shipping) || 0,
+      shipping: round2(shipping),
       grand_total: grandTotal,
       currency
     },

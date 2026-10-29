@@ -8,7 +8,7 @@
 const { runWebhookForge } = require('./core/index');
 
 async function execute(args) {
-  const { provider = 'stripe', payload, secret, received_signature, timestamp } = args;
+  const { provider = 'auto', payload, secret, received_signature, timestamp, timestamp_tolerance_sec } = args;
 
   if (!payload || !secret) {
     throw new Error('Both "payload" and "secret" are required.');
@@ -16,7 +16,8 @@ async function execute(args) {
 
   return await runWebhookForge(provider, payload, secret, {
     receivedHeader: received_signature,
-    timestamp
+    timestamp,
+    timestampToleranceSec: timestamp_tolerance_sec
   });
 }
 
@@ -28,11 +29,12 @@ module.exports = {
   parameters: {
     type: 'object',
     properties: {
-      provider: { type: 'string', enum: ['stripe', 'github', 'shopify', 'slack', 'svix', 'paddle'], description: 'Webhook provider. Default "stripe".' },
+      provider: { type: 'string', enum: ['auto', 'stripe', 'github', 'shopify', 'slack', 'svix', 'paddle'], description: 'Webhook provider, or "auto" to infer it from the received signature shape. Default "auto".' },
       payload: { description: 'Raw webhook payload string or JSON object' },
       secret: { type: 'string', description: 'Webhook signing secret key (e.g. whsec_...)' },
       received_signature: { type: 'string', description: 'Incoming signature header value from request to verify' },
-      timestamp: { type: 'number', description: 'Optional Unix timestamp for signature calculation' }
+      timestamp: { type: 'number', description: 'Optional Unix timestamp for signature calculation' },
+      timestamp_tolerance_sec: { type: 'number', description: 'Replay-age tolerance in seconds for timestamped providers (1-86400). Default 300.' }
     },
     required: ['payload', 'secret']
   },

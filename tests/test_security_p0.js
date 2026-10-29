@@ -186,6 +186,47 @@ async function run() {
       /exceeds max length/
     );
   });
+  await ok('Auditor value-aware scoring weights header values', async () => {
+    const { scoreSecurityHeaders } = auditor;
+    const full = scoreSecurityHeaders({
+      'strict-transport-security': 'max-age=63072000; includeSubDomains',
+      'content-security-policy': "default-src 'self'",
+      'x-frame-options': 'DENY',
+      'x-content-type-options': 'nosniff',
+      'referrer-policy': 'strict-origin-when-cross-origin'
+    }, 'https://example.com/');
+    assert.strictEqual(full.score, 100);
+    const weak = scoreSecurityHeaders({
+      'strict-transport-security': 'max-age=1000',
+      'content-security-policy': "script-src 'unsafe-inline'",
+      'x-frame-options': 'ALLOW-FROM https://x.com',
+      'x-content-type-options': 'nosniff',
+      'referrer-policy': 'unsafe-url'
+    }, 'http://example.com/');
+    // 15 + 10 + 0 + 15 + 6 + 0 = 46
+    assert.strictEqual(weak.score, 46);
+    assert.strictEqual(weak.details.hsts.max_age, 1000);
+    assert.strictEqual(weak.details.csp.has_unsafe_directive, true);
+    const empty = scoreSecurityHeaders({}, 'http://example.com/');
+    assert.strictEqual(empty.score, 0);
+  });
+  await ok('fetchAuditTarget reports redirect chain', async () => {
+    const fakeFetch = async (u) => {
+      if (u === 'https://example.com/a') {
+        return { status: 302, headers: { get: (n) => (String(n).toLowerCase() === 'location' ? '/b' : null) }, body: null };
+      }
+      return { status: 200, headers: { get: () => null }, body: null, text: async () => '<html></html>' };
+    };
+    const r = await ssrf.fetchAuditTarget('https://example.com/a', {
+      fetchFn: fakeFetch,
+      dnsLookup: async () => ['93.184.216.34']
+    });
+    assert.strictEqual(r.finalUrl, 'https://example.com/b');
+    assert.deepStrictEqual(r.redirectChain, [
+      { url: 'https://example.com/a', status: 302 },
+      { url: 'https://example.com/b', status: 200 }
+    ]);
+  });
 
   console.log('--- Live edge headers ---');
   await ok('GET /status emits security + CORS headers', async () => {

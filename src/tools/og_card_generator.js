@@ -55,6 +55,40 @@ function execute(args) {
     throw new Error('"url" must be a valid http(s) URL.');
   }
 
+  // Word-wrap on spaces so long titles/descriptions flow onto multiple
+  // lines instead of truncating mid-word. Overlong single words hard-break.
+  const wrapLines = (str, maxChars, maxLines) => {
+    const words = String(str || '').split(/\s+/).filter(Boolean);
+    const lines = [];
+    let cur = '';
+    for (const w of words) {
+      if ((cur + ' ' + w).trim().length > maxChars) {
+        if (cur) lines.push(cur);
+        let rest = w;
+        while (rest.length > maxChars) {
+          lines.push(rest.slice(0, maxChars));
+          rest = rest.slice(maxChars);
+        }
+        cur = rest;
+      } else {
+        cur = (cur + ' ' + w).trim();
+      }
+      if (lines.length >= maxLines) break;
+    }
+    if (cur && lines.length < maxLines) lines.push(cur);
+    return lines.slice(0, maxLines);
+  };
+  const titleLines = wrapLines(title, 32, 3);
+  // Keep the footer clear: a full 3-line title leaves room for one desc line.
+  const descLines = wrapLines(description, 64, titleLines.length >= 3 ? 1 : 2);
+  const titleSvg = titleLines.map((ln, i) =>
+    `  <text x="100" y="${230 + i * 62}" font-family="-apple-system, sans-serif" font-size="52" font-weight="800" fill="${t.text}">${escapeXml(ln)}</text>`
+  ).join('\n');
+  const descY = 230 + titleLines.length * 62 + 28;
+  const descSvg = descLines.map((ln, i) =>
+    `  <text x="100" y="${descY + i * 34}" font-family="-apple-system, sans-serif" font-size="24" font-weight="400" fill="${t.sub}">${escapeXml(ln)}</text>`
+  ).join('\n');
+
   // Generate crisp 1200x630 vector SVG
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
   <defs>
@@ -71,15 +105,11 @@ function execute(args) {
   <circle cx="120" cy="129" r="5" fill="${t.accent}"/>
   <text x="134" y="135" font-family="-apple-system, sans-serif" font-size="18" font-weight="600" fill="${t.text}">${escapeXml(badge)}</text>
   
-  <!-- Title -->
-  <text x="100" y="230" font-family="-apple-system, sans-serif" font-size="52" font-weight="800" fill="${t.text}">
-    ${escapeXml(title.slice(0, 75))}
-  </text>
+  <!-- Title (wrapped) -->
+${titleSvg}
   
-  <!-- Description -->
-  <text x="100" y="320" font-family="-apple-system, sans-serif" font-size="24" font-weight="400" fill="${t.sub}">
-    ${escapeXml(description.slice(0, 110))}
-  </text>
+  <!-- Description (wrapped) -->
+${descSvg}
   
   <!-- Footer Brand -->
   <rect x="100" y="470" width="46" height="46" rx="12" fill="${t.accent}"/>

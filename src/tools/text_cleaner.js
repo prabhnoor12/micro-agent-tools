@@ -10,7 +10,8 @@ function execute(args) {
     strip_tracking_urls = true,
     fix_line_wraps = true,
     straighten_quotes = true,
-    remove_invisible_chars = true
+    remove_invisible_chars = true,
+    strip_html_tags = true
   } = args;
 
   if (typeof text !== 'string') {
@@ -21,8 +22,24 @@ function execute(args) {
   let stats = {
     urls_cleaned: 0,
     line_wraps_fixed: 0,
-    invisible_chars_removed: 0
+    invisible_chars_removed: 0,
+    html_tags_removed: 0
   };
+
+  // 0. Strip HTML markup (scraped pages): drop script/style content, turn
+  // block tags into line breaks, remaining tags into spaces.
+  if (strip_html_tags) {
+    const tagMatches = cleaned.match(/<[^>]*>/g);
+    stats.html_tags_removed = tagMatches ? tagMatches.length : 0;
+    cleaned = cleaned
+      .replace(/<script[\s\S]*?<\/script\s*>/gi, ' ')
+      .replace(/<style[\s\S]*?<\/style\s*>/gi, ' ')
+      .replace(/<(br|p|div|li|h[1-6]|tr|section|article)\b[^>]*>/gi, '\n')
+      .replace(/<\/(p|div|li|h[1-6]|tr|section|article)>/gi, '\n')
+      .replace(/<[^>]*>/g, ' ')
+      .replace(/[ \t\f\v]+/g, ' ')
+      .replace(/\n{3,}/g, '\n\n');
+  }
 
   // 1. Remove invisible zero-width characters
   if (remove_invisible_chars) {
@@ -43,9 +60,9 @@ function execute(args) {
   // 3. Fix broken PDF line wraps
   if (fix_line_wraps) {
     // Join lines that end without a period or colon followed by lowercase or continuation
-    const beforeWrap = cleaned;
+    const wrapMatches = cleaned.match(/([^\.\:\!\?\n])\r?\n([a-z0-9])/gi);
+    stats.line_wraps_fixed = wrapMatches ? wrapMatches.length : 0;
     cleaned = cleaned.replace(/([^\.\:\!\?\n])\r?\n([a-z0-9])/gi, '$1 $2');
-    if (beforeWrap !== cleaned) stats.line_wraps_fixed++;
   }
 
   // 4. Strip UTM and tracking parameters
@@ -54,7 +71,7 @@ function execute(args) {
     cleaned = cleaned.replace(urlPattern, match => {
       try {
         const u = new URL(match);
-        const trackingKeys = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content', 'fbclid', 'gclid', 'msclkid', 'mc_eid', 'ref', 'source'];
+        const trackingKeys = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content', 'utm_id', 'fbclid', 'gclid', 'gbraid', 'dclid', 'msclkid', 'ttclid', 'twclid', 'yclid', 'mc_eid', 'mc_cid', 'igshid', 'srsltid', 'ref', 'source'];
         let stripped = false;
         trackingKeys.forEach(k => {
           if (u.searchParams.has(k)) {
@@ -89,7 +106,8 @@ module.exports = {
       strip_tracking_urls: { type: 'boolean', description: 'Remove UTM and click IDs from URLs. Default true.' },
       fix_line_wraps: { type: 'boolean', description: 'Merge sentences broken by PDF column margins. Default true.' },
       straighten_quotes: { type: 'boolean', description: 'Convert smart quotes to standard ASCII. Default true.' },
-      remove_invisible_chars: { type: 'boolean', description: 'Remove zero-width spaces and non-breaking spaces. Default true.' }
+      remove_invisible_chars: { type: 'boolean', description: 'Remove zero-width spaces and non-breaking spaces. Default true.' },
+      strip_html_tags: { type: 'boolean', description: 'Strip HTML markup from scraped pages (script/style content dropped). Default true.' }
     },
     required: ['text']
   },

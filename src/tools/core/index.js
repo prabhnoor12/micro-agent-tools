@@ -47,10 +47,33 @@ function runJsonDiff(payloadA, payloadB, options = {}) {
 /**
  * 2. Webhook Signature Verifier, Signer & Insecure Secret Sentinel
  */
+/**
+ * Infer the provider from a received signature header's shape:
+ * Stripe (t=/v1=), GitHub (sha256=/sha1=), Slack (v0=), Paddle (ts=/h1=),
+ * Svix (v1, prefix), Shopify (bare 64-hex HMAC). Null when unrecognized.
+ */
+function detectWebhookProvider(receivedHeader) {
+  const h = String(receivedHeader || '').trim();
+  if (!h) return null;
+  if (/t=.*v1=/.test(h)) return 'stripe';
+  if (h.startsWith('sha256=') || h.startsWith('sha1=')) return 'github';
+  if (h.startsWith('v0=')) return 'slack';
+  if (/ts=.*h1=/.test(h)) return 'paddle';
+  if (/^v1,/.test(h)) return 'svix';
+  if (/^[0-9a-f]{64}$/i.test(h)) return 'shopify';
+  return null;
+}
+
 async function runWebhookForge(provider, rawPayload, secret, options = {}) {
-  const provKey = (provider || 'stripe').toLowerCase();
+  let provKey = (provider || 'auto').toLowerCase();
   const payloadStr = typeof rawPayload === 'object' ? JSON.stringify(rawPayload) : String(rawPayload || '');
   const secretKey = String(secret || '');
+  let providerDetected = false;
+  if (provKey === 'auto') {
+    const guessed = options.receivedHeader ? detectWebhookProvider(options.receivedHeader) : null;
+    provKey = guessed || 'stripe';
+    providerDetected = guessed !== null;
+  }
 
   // 1. Audit weak secret
   const weakCheck = HmacEngine.checkWeakSecret(secretKey);
@@ -85,6 +108,7 @@ async function runWebhookForge(provider, rawPayload, secret, options = {}) {
   return {
     ok: true,
     provider: provKey,
+    providerDetected,
     signatureHeaderName: computed.headerName,
     signatureHeaderValue: computed.fullHeader,
     timestamp,

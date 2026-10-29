@@ -42,20 +42,35 @@ function execute(args) {
   const windowWidth = totalWidth - cardPadding * 2;
   const windowHeight = headerHeight + contentHeight;
 
-  // Simple token regex
-  const keywordRegex = /\b(const|let|var|function|return|import|export|from|default|class|if|else|for|while|async|await|def|select|from|where)\b/g;
-  const stringRegex = /(["'`].*?["'`])/g;
-  const commentRegex = /(\/\/.*$|#.*$)/;
+  // Heuristic tokenizer, applied left-to-right per line: comments win over
+  // strings (so `// say "hi"` is one comment), strings win over keywords
+  // (so `"https://…"` isn't split). Language-agnostic on purpose: JS/TS,
+  // Python, and SQL keyword sets share one pass. Known approximation: `#`
+  // always reads as a comment (Python-style), so JS private fields tint too.
+  const TOKEN_RE = /(\/\/.*$|#.*$)|("(?:[^"\\\n]|\\.)*"|'(?:[^'\\\n]|\\.)*'|`(?:[^`\\]|\\.)*`)|\b(const|let|var|function|return|import|export|from|default|class|if|else|for|while|async|await|def|select|where)\b/g;
+  const highlightLine = (line) => {
+    TOKEN_RE.lastIndex = 0;
+    let out = '';
+    let last = 0;
+    let m;
+    while ((m = TOKEN_RE.exec(line)) !== null) {
+      out += escapeXml(line.slice(last, m.index));
+      const color = m[1] ? t.comment : m[2] ? t.string : m[3] ? t.keyword : t.text;
+      out += `<tspan fill="${color}">${escapeXml(m[0])}</tspan>`;
+      last = m.index + m[0].length;
+    }
+    out += escapeXml(line.slice(last));
+    return out;
+  };
 
   const renderedLines = lines.map((line, idx) => {
-    let processed = escapeXml(line);
     const lineNum = idx + 1;
     const yPos = headerHeight + 25 + idx * lineHeight;
 
     return `
       <g>
         ${show_line_numbers ? `<text x="75" y="${yPos}" font-family="monospace" font-size="12" fill="${t.comment}" text-anchor="end">${lineNum}</text>` : ''}
-        <text x="${show_line_numbers ? 95 : 75}" y="${yPos}" font-family="monospace" font-size="13" fill="${t.text}">${processed}</text>
+        <text x="${show_line_numbers ? 95 : 75}" y="${yPos}" font-family="monospace" font-size="13" fill="${t.text}">${highlightLine(line)}</text>
       </g>
     `;
   }).join('');
