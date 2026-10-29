@@ -1,8 +1,11 @@
 /**
  * WebAuditor Agent Tool
  * Audits websites for HTTP security headers, Open Graph tags & latency
- * Cost: $0.005 / call
+ * SSRF-hardened: public http(s) only, manual re-validated redirects,
+ * DNS re-check, DNS-pinned sockets on Node, capped bodies, bounded timeouts.
  */
+
+const { fetchAuditTarget } = require('../api/ssrf');
 
 async function execute(args) {
   const { url } = args;
@@ -11,42 +14,35 @@ async function execute(args) {
     throw new Error('"url" parameter is required.');
   }
 
-  const targetUrl = url.startsWith('http') ? url : `https://${url}`;
   const startTime = Date.now();
 
   try {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 8000);
+    const { response, bodyText, finalUrl, status, getHeader } = await fetchAuditTarget(url, { timeoutMs: 8000 });
+    const statusCode = typeof status === 'number' ? status : response.status;
+    const hasHeader = (name) => {
+      if (typeof getHeader === 'function') return getHeader(name) != null;
+      return response.headers.has(name);
+    };
 
-    const response = await fetch(targetUrl, {
-      signal: controller.signal,
-      headers: {
-        'User-Agent': 'AgentToolBot/1.0 (+https://freetools.dev)'
-      },
-      redirect: 'follow'
-    });
-
-    clearTimeout(timeoutId);
     const latencyMs = Date.now() - startTime;
-    const body = await response.text();
 
     // Analyze Security Headers
     const secHeaders = {
-      'strict-transport-security': response.headers.has('strict-transport-security'),
-      'content-security-policy': response.headers.has('content-security-policy'),
-      'x-frame-options': response.headers.has('x-frame-options'),
-      'x-content-type-options': response.headers.has('x-content-type-options'),
-      'referrer-policy': response.headers.has('referrer-policy')
+      'strict-transport-security': hasHeader('strict-transport-security'),
+      'content-security-policy': hasHeader('content-security-policy'),
+      'x-frame-options': hasHeader('x-frame-options'),
+      'x-content-type-options': hasHeader('x-content-type-options'),
+      'referrer-policy': hasHeader('referrer-policy')
     };
 
     let secScore = 0;
     Object.values(secHeaders).forEach(val => { if (val) secScore += 20; });
 
     // Analyze Open Graph tags
-    const hasOgTitle = /property=["']og:title["']/i.test(body);
-    const hasOgImage = /property=["']og:image["']/i.test(body);
-    const hasOgDesc = /property=["']og:description["']/i.test(body);
-    const hasMetaDesc = /name=["']description["']/i.test(body);
+    const hasOgTitle = /property=["']og:title["']/i.test(bodyText);
+    const hasOgImage = /property=["']og:image["']/i.test(bodyText);
+    const hasOgDesc = /property=["']og:description["']/i.test(bodyText);
+    const hasMetaDesc = /name=["']description["']/i.test(bodyText);
 
     const recommendations = [];
     if (!secHeaders['strict-transport-security']) recommendations.push('Add Strict-Transport-Security (HSTS) header.');
@@ -56,8 +52,8 @@ async function execute(args) {
 
     return {
       success: true,
-      url: targetUrl,
-      status_code: response.status,
+      url: finalUrl,
+      status_code: statusCode,
       latency_ms: latencyMs,
       security_score: secScore,
       security_headers: secHeaders,
@@ -70,10 +66,11 @@ async function execute(args) {
       recommendations
     };
   } catch (err) {
+    if (err && (err.statusCode === 400 || err.statusCode === 413)) throw err;
     const isTimeout = err.name === 'AbortError' || err.message?.includes('timeout') || err.message?.includes('abort');
     return {
       success: false,
-      url: targetUrl,
+      url: typeof url === 'string' ? url.slice(0, 2048) : '',
       error: isTimeout ? 'Request timed out after 8000ms' : err.message
     };
   }
@@ -87,7 +84,7 @@ module.exports = {
   parameters: {
     type: 'object',
     properties: {
-      url: { type: 'string', description: 'Website URL to audit (e.g. "https://stripe.com")' }
+      url: { type: 'string', description: 'Public http(s) website URL to audit (e.g. "https://stripe.com"). Private/internal hosts are rejected.' }
     },
     required: ['url']
   },

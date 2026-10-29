@@ -124,6 +124,49 @@ async function handleRpcRequest(request) {
 }
 
 /**
+ * Max single JSON-RPC line on stdio. A hostile or malfunctioning bridge
+ * must not be able to OOM the server with one unbounded line.
+ */
+const MAX_STDIO_LINE_BYTES = 1 * 1024 * 1024;
+
+let oversizeLineCount = 0;
+
+function oversizeLineCountTotal() {
+  return oversizeLineCount;
+}
+
+/**
+ * Handle one stdio line. Pure-ish and testable: returns the serialized
+ * response, or null for notifications / empty lines.
+ */
+async function handleStdioLine(line) {
+  const trimmed = String(line || '').trim();
+  if (!trimmed) return null;
+
+  if (Buffer.byteLength(trimmed, 'utf8') > MAX_STDIO_LINE_BYTES) {
+    oversizeLineCount += 1;
+    return JSON.stringify({
+      jsonrpc: '2.0',
+      id: null,
+      error: { code: -32700, message: `Parse error: line exceeds max of ${MAX_STDIO_LINE_BYTES} bytes.` }
+    });
+  }
+
+  try {
+    const request = JSON.parse(trimmed);
+    const response = await handleRpcRequest(request);
+    return response ? JSON.stringify(response) : null;
+  } catch (err) {
+    const errorResp = {
+      jsonrpc: '2.0',
+      id: null,
+      error: { code: -32700, message: 'Parse error: ' + String((err && err.message) || err).slice(0, 500) }
+    };
+    return JSON.stringify(errorResp);
+  }
+}
+
+/**
  * Start stdio transport (Used by Claude Desktop & Cursor)
  */
 function startStdio() {
@@ -135,22 +178,20 @@ function startStdio() {
   });
 
   rl.on('line', async line => {
-    const trimmed = line.trim();
-    if (!trimmed) return;
-
     try {
-      const request = JSON.parse(trimmed);
-      const response = await handleRpcRequest(request);
-      if (response) {
-        process.stdout.write(JSON.stringify(response) + '\n');
-      }
+      const out = await handleStdioLine(line);
+      if (out) process.stdout.write(out + '\n');
     } catch (err) {
       const errorResp = {
         jsonrpc: '2.0',
         id: null,
-        error: { code: -32700, message: 'Parse error: ' + err.message }
+        error: { code: -32603, message: 'Internal error' }
       };
-      process.stdout.write(JSON.stringify(errorResp) + '\n');
+      try {
+        process.stdout.write(JSON.stringify(errorResp) + '\n');
+      } catch (_) {
+        // ignore — stdout broken
+      }
     }
   });
 
@@ -164,5 +205,8 @@ if (require.main === module) {
 
 module.exports = {
   handleRpcRequest,
+  handleStdioLine,
+  oversizeLineCountTotal,
+  MAX_STDIO_LINE_BYTES,
   startStdio
 };

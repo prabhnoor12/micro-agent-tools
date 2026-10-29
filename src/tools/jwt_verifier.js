@@ -18,7 +18,7 @@ async function execute(args) {
 
 module.exports = {
   name: 'jwt_verifier',
-  description: 'Decodes JWT header/payload claims, audits signature integrity, checks expiration timestamps, and tests for weak shared HMAC secrets.',
+  description: 'Decodes JWT header/payload claims, audits signature integrity, checks expiration timestamps, and tests for weak shared HMAC secrets. Prefer local-only use for live production secrets.',
   free: true,
   cost_usd: 0.00,
   parameters: {

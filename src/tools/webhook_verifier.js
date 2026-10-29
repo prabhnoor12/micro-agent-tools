@@ -22,7 +22,7 @@ async function execute(args) {
 
 module.exports = {
   name: 'webhook_verifier',
-  description: 'Verifies and computes HMAC webhook signatures for Stripe, GitHub, Shopify, Slack, Svix, and Paddle with weak secret auditing.',
+  description: 'Verifies and computes HMAC webhook signatures for Stripe, GitHub, Shopify, Slack, Svix, and Paddle with weak secret auditing and replay-age checks. Prefer local-only use for live production secrets.',
   free: true,
   cost_usd: 0.00,
   parameters: {

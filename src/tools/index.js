@@ -43,7 +43,42 @@ const TOOLS = [
   sourcemapDemapper
 ];
 
+const { validateArgs } = require('./validate');
+
 const TOOLS_MAP = new Map(TOOLS.map(t => [t.name, t]));
+
+// Generic pre-execution shape guard: per-tool usage limits check sizes,
+// this checks nesting depth + key fan-out so a tiny-but-hostile payload
+// (deep nesting, 100k-key object) can't blow the stack or event loop.
+const MAX_ARG_DEPTH = 20;
+const MAX_ARG_KEYS = 5000;
+
+function checkArgShape(value, depth = 0, budget = { keys: MAX_ARG_KEYS }) {
+  if (budget.keys < 0) {
+    const err = new Error(`Tool arguments exceed max of ${MAX_ARG_KEYS} total keys.`);
+    err.statusCode = 413;
+    throw err;
+  }
+  if (Array.isArray(value)) {
+    if (depth > MAX_ARG_DEPTH) {
+      const err = new Error(`Tool arguments exceed max nesting depth of ${MAX_ARG_DEPTH}.`);
+      err.statusCode = 413;
+      throw err;
+    }
+    for (const item of value) checkArgShape(item, depth + 1, budget);
+    return;
+  }
+  if (value && typeof value === 'object') {
+    if (depth > MAX_ARG_DEPTH) {
+      const err = new Error(`Tool arguments exceed max nesting depth of ${MAX_ARG_DEPTH}.`);
+      err.statusCode = 413;
+      throw err;
+    }
+    const keys = Object.keys(value);
+    budget.keys -= keys.length;
+    for (const k of keys) checkArgShape(value[k], depth + 1, budget);
+  }
+}
 
 function listTools() {
   return TOOLS.map(t => ({
@@ -55,12 +90,21 @@ function listTools() {
   }));
 }
 
-async function executeTool(name, args) {
+async function executeTool(name, args, opts = {}) {
   const tool = TOOLS_MAP.get(name);
   if (!tool) {
     throw new Error(`Tool "${name}" not found. Available tools: ${Array.from(TOOLS_MAP.keys()).join(', ')}`);
   }
-  return await tool.execute(args || {});
+  const safeArgs = validateArgs(tool, args || {});
+  checkArgShape(safeArgs);
+  // Cooperative cancellation: aborted before start → fail fast instead of
+  // burning CPU on work nobody waits for anymore.
+  if (opts.signal && opts.signal.aborted) {
+    const err = new Error(`Tool "${name}" aborted before start.`);
+    err.statusCode = 504;
+    throw err;
+  }
+  return await tool.execute(safeArgs, opts);
 }
 
 function getTool(name) {
@@ -71,5 +115,8 @@ module.exports = {
   TOOLS,
   listTools,
   executeTool,
-  getTool
+  getTool,
+  checkArgShape,
+  MAX_ARG_DEPTH,
+  MAX_ARG_KEYS,
 };

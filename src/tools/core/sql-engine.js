@@ -8,14 +8,29 @@ const SqlEngine = (() => {
   /**
    * Execute a SQL query over array of log objects
    */
-  function execute(sqlQuery, dataset) {
+  // Throw a 504-style abort when the caller's deadline fired. Sync engine,
+  // so this is checked cooperatively every 1024 rows, not per row.
+  function checkAborted(signal) {
+    if (signal && signal.aborted) {
+      const err = new Error('SQL execution aborted (timeout).');
+      err.statusCode = 504;
+      throw err;
+    }
+  }
+
+  function execute(sqlQuery, dataset, opts = {}) {
     const startTime = performance.now();
+    const signal = opts.signal || null;
+    const maxRows = Number(opts.maxRows) > 0 ? Number(opts.maxRows) : 1000;
     if (!sqlQuery || !sqlQuery.trim()) {
       return { columns: [], rows: [], executionTimeMs: 0, error: 'Empty SQL query' };
     }
 
     try {
       const cleanSql = sqlQuery.trim().replace(/;$/, '');
+      if (cleanSql.includes(';')) {
+        throw new Error('Multiple statements are not allowed. Send a single SELECT query.');
+      }
       
       // Match basic components
       // SELECT ... FROM logs [WHERE ...] [GROUP BY ...] [ORDER BY ...] [LIMIT ...]
@@ -44,19 +59,24 @@ const SqlEngine = (() => {
       const limitMatch = cleanSql.match(/\s+LIMIT\s+(\d+)/i);
       if (limitMatch) limitClause = parseInt(limitMatch[1], 10);
 
-      // 1. FILTER (WHERE)
+      // 1. FILTER (WHERE) — cooperative abort every 1024 rows.
       let filtered = dataset;
       if (whereClause) {
-        filtered = dataset.filter(row => evaluateWhere(whereClause, row));
+        filtered = dataset.filter((row, i) => {
+          if (i % 1024 === 0) checkAborted(signal);
+          return evaluateWhere(whereClause, row);
+        });
       }
+      checkAborted(signal);
 
       // 2. GROUP BY & AGGREGATE
       let resultRows = [];
       if (groupByClause) {
-        resultRows = executeGroupBy(filtered, groupByClause, selectClause);
+        resultRows = executeGroupBy(filtered, groupByClause, selectClause, signal);
       } else {
-        resultRows = executeSelect(filtered, selectClause);
+        resultRows = executeSelect(filtered, selectClause, signal);
       }
+      checkAborted(signal);
 
       // 3. ORDER BY
       if (orderByClause) {
@@ -68,6 +88,13 @@ const SqlEngine = (() => {
         resultRows = resultRows.slice(0, limitClause);
       }
 
+      // 5. Hard result cap: never hand a 100k-row array to JSON.stringify.
+      let truncated = false;
+      if (resultRows.length > maxRows) {
+        resultRows = resultRows.slice(0, maxRows);
+        truncated = true;
+      }
+
       const columns = resultRows.length > 0 ? Object.keys(resultRows[0]) : [];
       const executionTimeMs = Math.round((performance.now() - startTime) * 100) / 100;
 
@@ -75,10 +102,15 @@ const SqlEngine = (() => {
         columns,
         rows: resultRows,
         rowCount: resultRows.length,
+        truncated,
+        maxRows,
         executionTimeMs
       };
 
     } catch (err) {
+      // Cooperative abort must propagate to the caller (→ HTTP 504),
+      // not collapse into a 200-shaped {error} result.
+      if (err && err.statusCode === 504) throw err;
       return {
         columns: [],
         rows: [],
@@ -142,13 +174,17 @@ const SqlEngine = (() => {
   /**
    * Standard SELECT without GROUP BY
    */
-  function executeSelect(dataset, selectClause) {
+  function executeSelect(dataset, selectClause, signal) {
     if (selectClause === '*') {
-      return dataset.map(row => ({ ...row }));
+      return dataset.map((row, i) => {
+        if (i % 1024 === 0) checkAborted(signal);
+        return { ...row };
+      });
     }
 
     const fields = selectClause.split(',').map(s => s.trim());
-    return dataset.map(row => {
+    return dataset.map((row, i) => {
+      if (i % 1024 === 0) checkAborted(signal);
       const out = {};
       fields.forEach(f => {
         const asMatch = f.match(/^(\w+)\s+AS\s+(\w+)$/i);
@@ -165,16 +201,18 @@ const SqlEngine = (() => {
   /**
    * GROUP BY execution with COUNT, SUM, AVG
    */
-  function executeGroupBy(dataset, groupField, selectClause) {
+  function executeGroupBy(dataset, groupField, selectClause, signal) {
     const groups = new Map();
 
-    dataset.forEach(row => {
+    dataset.forEach((row, i) => {
+      if (i % 1024 === 0) checkAborted(signal);
       const key = row[groupField] !== undefined ? String(row[groupField]) : '(empty)';
       if (!groups.has(key)) {
         groups.set(key, []);
       }
       groups.get(key).push(row);
     });
+    checkAborted(signal);
 
     const fields = selectClause.split(',').map(s => s.trim());
     const result = [];

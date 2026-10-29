@@ -24,6 +24,11 @@ function execute(args) {
   if (!code || typeof code !== 'string') {
     throw new Error('"code" parameter must be a non-empty string.');
   }
+  if (typeof title === 'string' && title.length > 80) {
+    const err = new Error('"title" exceeds max length of 80 chars.');
+    err.statusCode = 413;
+    throw err;
+  }
 
   const t = THEMES[theme] || THEMES.midnight;
   const lines = code.trim().split(/\r?\n/).slice(0, 40);

@@ -6,6 +6,17 @@
 
 const JwtEngine = (() => {
 
+  // Timing-safe string comparison (constant-time body; length checked first).
+  function timingSafeEqual(a, b) {
+    if (typeof a !== 'string' || typeof b !== 'string') return false;
+    if (a.length !== b.length) return false;
+    let mismatch = 0;
+    for (let i = 0; i < a.length; i++) {
+      mismatch |= (a.charCodeAt(i) ^ b.charCodeAt(i));
+    }
+    return mismatch === 0;
+  }
+
   function base64UrlDecode(str) {
     let base64 = str.replace(/-/g, '+').replace(/_/g, '/');
     while (base64.length % 4) {
@@ -135,7 +146,7 @@ const JwtEngine = (() => {
     );
 
     const expectedSigB64Url = bufferToBase64Url(sigBuffer);
-    const isValid = expectedSigB64Url === receivedSignatureB64Url;
+    const isValid = timingSafeEqual(expectedSigB64Url, receivedSignatureB64Url);
 
     return {
       isValid,
@@ -234,9 +245,21 @@ except jwt.InvalidTokenError as e:
    */
   async function verifyJwksEndpoint(jwksUrl, tokenHeader) {
     try {
-      const resp = await fetch(jwksUrl);
-      if (!resp.ok) throw new Error(`HTTP ${resp.status} ${resp.statusText}`);
-      const jwks = await resp.json();
+      if (typeof jwksUrl !== 'string' || !/^https:\/\//i.test(jwksUrl.trim())) {
+        return { ok: false, error: 'JWKS URL must use https.' };
+      }
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 8000);
+      let resp;
+      try {
+        resp = await fetch(jwksUrl, { signal: controller.signal });
+      } finally {
+        clearTimeout(timer);
+      }
+      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+      const text = await resp.text();
+      if (text.length > 1024 * 1024) throw new Error('JWKS response exceeds 1MB.');
+      const jwks = JSON.parse(text);
       if (!jwks.keys || !Array.isArray(jwks.keys)) {
         throw new Error('Invalid JWKS structure: response does not contain a "keys" array');
       }
@@ -272,6 +295,7 @@ except jwt.InvalidTokenError as e:
   const engine = {
     parseToken,
     evaluateExpiration,
+    timingSafeEqual,
     verifyHs256Signature,
     forgeHs256Token,
     generateNodeVerifyCode,

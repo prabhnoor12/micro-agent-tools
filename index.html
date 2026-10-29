@@ -529,6 +529,11 @@
     argsTextarea.addEventListener('input', updateCodeSnippet);
 
     // 4. Render Tool Grid Cards
+    function escapeHtml(s) {
+      return String(s ?? '').replace(/[&<>"']/g, c => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+      }[c]));
+    }
     function renderGrid(filterCat = 'all', searchQuery = '') {
       toolsGrid.innerHTML = '';
       const q = searchQuery.toLowerCase().trim();
@@ -540,7 +545,7 @@
       });
 
       if (filtered.length === 0) {
-        toolsGrid.innerHTML = `<div class="col-span-full py-8 text-center text-xs text-slate-500">No tools match "${searchQuery}"</div>`;
+        toolsGrid.innerHTML = `<div class="col-span-full py-8 text-center text-xs text-slate-500">No tools match "${escapeHtml(searchQuery)}"</div>`;
         return;
       }
 

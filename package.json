@@ -9,7 +9,12 @@
   "scripts": {
     "start": "node src/api/edge_server.js",
     "mcp": "node src/mcp/server.js",
-    "test": "node tests/test_runner.js",
+    "test": "node tests/test_runner.js && node tests/test_security_p0.js && node tests/test_security_p1.js && node tests/test_reliability_p2.js && node tests/test_secret_canary.js && node tests/test_hardening_p3.js",
+    "test:security": "node tests/test_security_p0.js && node tests/test_security_p1.js",
+    "test:reliability": "node tests/test_reliability_p2.js",
+    "test:canary": "node tests/test_secret_canary.js",
+    "test:p3": "node tests/test_hardening_p3.js",
+    "validate:config": "node scripts/validate-wrangler.js",
     "build": "node -e \"const fs=require('fs'); fs.mkdirSync('public', {recursive:true}); ['index.html','llms.txt','llms-full.txt'].forEach(f => fs.copyFileSync(f, 'public/' + f)); console.log('✅ Public assets synced');\"",
     "dev:edge": "wrangler dev",
     "deploy": "wrangler deploy"

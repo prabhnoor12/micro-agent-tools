@@ -1,0 +1,27 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Validate worker config
+        run: node scripts/validate-wrangler.js
+
+      - name: Sync public assets
+        run: npm run build
+
+      - name: Full test suite (tools + P0 + P1 + P2 + P3 + canary)
+        run: npm test

@@ -2,7 +2,7 @@
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "micro-agent-tools",
   "main": "src/worker.js",
-  "compatibility_date": "2024-11-01",
+  "compatibility_date": "2025-06-01",
   "compatibility_flags": [
     "nodejs_compat"
   ],
@@ -14,5 +14,35 @@
   },
   "observability": {
     "enabled": true
-  }
+  },
+  // NOTE: in-memory limits in src/api/limits.js are per-isolate best-effort.
+  // Enforce distributed abuse protection with Cloudflare WAF Rate Limiting
+  // rules (see docs/rate-limiting.md + docs/rate-limiting.example.json).
+  // Ops runbook (request IDs, health, logging): docs/ops.md.
+  // Worker env (mirrors the Node process env):
+  // - ALLOWED_ORIGINS: comma-separated origins for ACAO, or "*" (default).
+  // - TRUST_PROXY_HEADERS: "1" only behind a proxy you control that
+  //   overwrites X-Forwarded-For; default "0" (XFF ignored, CF-Connecting-IP wins).
+  "vars": {
+    "ALLOWED_ORIGINS": "*",
+    "TRUST_PROXY_HEADERS": "0"
+  },
+  // Persistent sliding-window rate limiting. The worker uses this binding
+  // when present and falls back to per-isolate memory otherwise.
+  "durable_objects": {
+    "bindings": [
+      {
+        "name": "RATE_LIMITER",
+        "class_name": "RateLimitDO"
+      }
+    ]
+  },
+  "migrations": [
+    {
+      "tag": "v1",
+      "new_sqlite_classes": [
+        "RateLimitDO"
+      ]
+    }
+  ]
 }

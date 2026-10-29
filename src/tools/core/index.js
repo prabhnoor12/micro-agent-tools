@@ -65,6 +65,23 @@ async function runWebhookForge(provider, rawPayload, secret, options = {}) {
     verification = await HmacEngine.verifySignature(provKey, payloadStr, secretKey, options.receivedHeader);
   }
 
+  // Replay protection: timestamped providers (stripe/slack/svix/paddle)
+  // are fresh only within the tolerance window (default 300s).
+  const tolerance = Number(options.timestampToleranceSec) || 300;
+  let timestampOk = null;
+  let isReplayRisk = false;
+  if (verification && ['stripe', 'slack', 'svix', 'paddle'].includes(provKey)) {
+    const age = Math.floor(Date.now() / 1000) - Number(verification.timestamp || 0);
+    timestampOk = Number.isFinite(age) && Math.abs(age) <= tolerance;
+    isReplayRisk = timestampOk === false;
+    if (isReplayRisk) {
+      verification.diagnostics.push({
+        level: 'error',
+        text: `Replay risk: signature timestamp is ${age}s old (tolerance ${tolerance}s). Reject this webhook even though the HMAC may verify.`,
+      });
+    }
+  }
+
   return {
     ok: true,
     provider: provKey,
@@ -73,10 +90,14 @@ async function runWebhookForge(provider, rawPayload, secret, options = {}) {
     timestamp,
     signedString: computed.signedString,
     weakSecretAudit: weakCheck,
+    secretHandlingWarning: SECRET_HANDLING_WARNING,
     verification: verification ? {
       isValid: verification.isValid,
       expectedSignature: verification.expectedSignature,
       receivedSignature: verification.receivedSignature,
+      timestamp: verification.timestamp,
+      timestampOk,
+      isReplayRisk,
       diagnostics: verification.diagnostics
     } : null
   };
@@ -94,6 +115,13 @@ function runEnvMatrix(devEnv, stagingEnv, prodEnv, options = {}) {
   const parsedStaging = EnvParser.parse(stagingStr);
   const parsedProd = EnvParser.parse(prodStr);
 
+  // Never echo raw secret values back: existence + masked tail only.
+  const maskVal = (v) => {
+    if (v === null || v === undefined || v === '') return null;
+    const s = String(v);
+    return s.length <= 4 ? '••••' : `••••${s.slice(-4)}`;
+  };
+
   const matrix = EnvValidator.buildMatrix(parsedDev.map, parsedStaging.map, parsedProd.map);
 
   return {
@@ -105,9 +133,9 @@ function runEnvMatrix(devEnv, stagingEnv, prodEnv, options = {}) {
     matrixRows: matrix.matrixRows.map(r => ({
       key: r.key,
       status: r.status,
-      devVal: r.dev.exists ? r.dev.value : null,
-      stagingVal: r.staging.exists ? r.staging.value : null,
-      prodVal: r.prod.exists ? r.prod.value : null,
+      devVal: r.dev.exists ? maskVal(r.dev.value) : null,
+      stagingVal: r.staging.exists ? maskVal(r.staging.value) : null,
+      prodVal: r.prod.exists ? maskVal(r.prod.value) : null,
       issues: r.issues
     })),
     sanitizedExample: EnvExporters.toExample(parsedProd.entries.length ? parsedProd.entries : parsedDev.entries)
@@ -117,12 +145,36 @@ function runEnvMatrix(devEnv, stagingEnv, prodEnv, options = {}) {
 /**
  * 4. In-Memory SQL Query Engine for High-Volume Logs
  */
-function runDuckLog(rawLogs, sqlQuery = "SELECT status, COUNT(*) AS count FROM logs GROUP BY status ORDER BY count DESC") {
+const MAX_DUCK_DATASET_ROWS = 50000;
+
+function runDuckLog(rawLogs, sqlQuery = "SELECT status, COUNT(*) AS count FROM logs GROUP BY status ORDER BY count DESC", opts = {}) {
+  const signal = opts.signal || null;
+  const maxRows = Number(opts.maxRows) > 0 ? Number(opts.maxRows) : 1000;
   const logStr = Array.isArray(rawLogs) ? rawLogs.map(l => typeof l === 'object' ? JSON.stringify(l) : String(l)).join('\n') : String(rawLogs || '');
 
   const detectedFormat = LogParser.detectFormat(logStr);
-  const dataset = LogParser.parseLogs(logStr);
-  const queryResult = SqlEngine.execute(sqlQuery, dataset);
+  let dataset = LogParser.parseLogs(logStr);
+  // Dataset cap: a 1MB log of tiny lines still parses to tens of thousands
+  // of rows. Slice (newest assumption: file order) and say so.
+  let datasetTruncated = false;
+  if (dataset.length > MAX_DUCK_DATASET_ROWS) {
+    dataset = dataset.slice(0, MAX_DUCK_DATASET_ROWS);
+    datasetTruncated = true;
+  }
+  let queryResult;
+  try {
+    queryResult = SqlEngine.execute(sqlQuery, dataset, { signal, maxRows });
+  } catch (err) {
+    // Cooperative abort must propagate as a throw (→ HTTP 504), not a
+    // 200-shaped {ok:false} result nobody waits for.
+    if (err && err.statusCode === 504) throw err;
+    return {
+      ok: false,
+      error: err && err.message ? String(err.message).split('\n')[0].slice(0, 500) : 'SQL execution failed',
+      detectedFormat,
+      totalLogsParsed: dataset.length
+    };
+  }
 
   if (queryResult.error) {
     return {
@@ -142,9 +194,12 @@ function runDuckLog(rawLogs, sqlQuery = "SELECT status, COUNT(*) AS count FROM l
     ok: true,
     detectedFormat,
     totalLogsParsed: total,
+    datasetTruncated,
     query: sqlQuery,
     executionTimeMs: queryResult.executionTimeMs,
     rowCount: queryResult.rowCount,
+    truncated: queryResult.truncated || false,
+    maxRows: queryResult.maxRows,
     columns: queryResult.columns,
     rows: queryResult.rows,
     metricsSummary: {
@@ -197,6 +252,9 @@ function runSourceMapHero(stackTraceStr, sourceMapData, options = {}) {
 /**
  * 6. Cryptographic JWT Claims Debugger & Weak Secret Cracker
  */
+const SECRET_HANDLING_WARNING =
+  'Do not send production secrets to hosted gateways. Prefer local-only verification for live keys.';
+
 async function runJwtStudio(jwtString, secretKey, options = {}) {
   const token = String(jwtString || '').trim();
   const parsed = JwtEngine.parseToken(token);
@@ -205,13 +263,28 @@ async function runJwtStudio(jwtString, secretKey, options = {}) {
     return { ok: false, error: parsed.error };
   }
 
+  // alg=none / empty alg: unsigned token — never treat the payload as trusted.
+  const alg = parsed.header && typeof parsed.header.alg === 'string' ? parsed.header.alg : '';
+  if (alg.toLowerCase() === 'none' || alg === '') {
+    return {
+      ok: false,
+      error: 'Unsigned token rejected (alg=none). A payload without a signature is not verified.',
+    };
+  }
+
   const skew = Number(options.clockSkewSeconds) || 0;
   const expInfo = JwtEngine.evaluateExpiration(parsed.payload, skew);
 
-  // Signature check
+  // Signature check — engine verifies HS256; other algs get an explicit
+  // unsupported notice instead of a silent pass.
   let signatureCheck = null;
-  if (secretKey && parsed.header.alg === 'HS256') {
+  let signatureNote = null;
+  if (secretKey && alg === 'HS256') {
     signatureCheck = await JwtEngine.verifyHs256Signature(parsed.signedData, parsed.rawSignature, secretKey);
+  } else if (secretKey && /^HS(384|512)$/.test(alg)) {
+    signatureNote = `Signature verification for "${alg}" is not supported by this engine (HS256 only). Token was decoded, not verified.`;
+  } else if (secretKey) {
+    signatureNote = `Signature verification for algorithm "${String(alg).slice(0, 16)}" is not supported. Token was decoded, not verified.`;
   }
 
   // Weak secret dictionary audit
@@ -243,6 +316,8 @@ async function runJwtStudio(jwtString, secretKey, options = {}) {
       expected: signatureCheck.expectedSignature,
       received: signatureCheck.receivedSignature
     } : null,
+    signatureNote,
+    secretHandlingWarning: secretKey ? SECRET_HANDLING_WARNING : null,
     weakSecretAudit: weakSecretAudit ? {
       isVulnerableToDictionaryAttack: weakSecretAudit.cracked,
       crackedSecret: weakSecretAudit.secret || null

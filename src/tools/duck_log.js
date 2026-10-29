@@ -6,14 +6,14 @@
 
 const { runDuckLog } = require('./core/index');
 
-function execute(args) {
+function execute(args, opts = {}) {
   const { raw_logs, sql_query = 'SELECT status, COUNT(*) AS count FROM logs GROUP BY status ORDER BY count DESC' } = args;
 
   if (!raw_logs) {
     throw new Error('"raw_logs" parameter is required (JSON logs, Apache, Nginx, or Docker).');
   }
 
-  return runDuckLog(raw_logs, sql_query);
+  return runDuckLog(raw_logs, sql_query, { signal: opts.signal });
 }
 
 module.exports = {

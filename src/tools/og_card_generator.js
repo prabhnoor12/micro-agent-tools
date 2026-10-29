@@ -17,6 +17,23 @@ function execute(args) {
   if (!title || typeof title !== 'string') {
     throw new Error('"title" parameter is required.');
   }
+  if (title.length > 200) {
+    const err = new Error('"title" exceeds max length of 200 chars.');
+    err.statusCode = 413;
+    throw err;
+  }
+  for (const [key, max] of [['description', 1000], ['badge', 40], ['brand', 60]]) {
+    if (typeof args[key] === 'string' && args[key].length > max) {
+      const err = new Error(`"${key}" exceeds max length of ${max} chars.`);
+      err.statusCode = 413;
+      throw err;
+    }
+  }
+  if (typeof url !== 'string' || url.length > 2048) {
+    const err = new Error('"url" must be a string of max 2048 chars.');
+    err.statusCode = url && url.length > 2048 ? 413 : 400;
+    throw err;
+  }
 
   const themes = {
     emerald: { bg1: '#090d16', bg2: '#064e3b', accent: '#10b981', text: '#ffffff', sub: '#94a3b8' },
@@ -27,7 +44,16 @@ function execute(args) {
   };
 
   const t = themes[theme] || themes.emerald;
-  const cleanUrl = url.startsWith('http') ? url : `https://${url}`;
+  const withScheme = url.startsWith('http://') || url.startsWith('https://') ? url : `https://${url}`;
+  let cleanUrl;
+  try {
+    const parsed = new URL(withScheme);
+    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') throw new Error('bad protocol');
+    if (parsed.username || parsed.password) throw new Error('credentials');
+    cleanUrl = parsed.href;
+  } catch (_) {
+    throw new Error('"url" must be a valid http(s) URL.');
+  }
 
   // Generate crisp 1200x630 vector SVG
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">

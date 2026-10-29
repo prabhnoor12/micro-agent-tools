@@ -1,0 +1,32 @@
+{
+  "description": "Draft Cloudflare WAF rate-limiting ruleset template. Fill in ZONE_ID / route. Dashboard: Security -> WAF -> Rate limiting rules.",
+  "rules": [
+    {
+      "name": "micro-agent-global-abuse",
+      "match": "http.request.uri.path contains \"/v1/\"",
+      "characteristics": ["ip"],
+      "period": 60,
+      "requests_per_period": 120,
+      "action": "block",
+      "block_duration_secs": 60
+    },
+    {
+      "name": "micro-agent-mcp-gateway",
+      "match": "http.request.uri.path eq \"/v1/mcp\"",
+      "characteristics": ["ip"],
+      "period": 60,
+      "requests_per_period": 30,
+      "action": "block",
+      "block_duration_secs": 60
+    },
+    {
+      "name": "micro-agent-heavy-tools",
+      "match": "http.request.uri.path in {\"/v1/tools/pdf_processor\" \"/v1/tools/website_health_auditor\" \"/v1/tools/duck_log\"}",
+      "characteristics": ["ip"],
+      "period": 60,
+      "requests_per_period": 5,
+      "action": "block",
+      "block_duration_secs": 300
+    }
+  ]
+}

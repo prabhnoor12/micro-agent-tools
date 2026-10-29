@@ -47,7 +47,9 @@ async function runTests() {
   // 4. PIIRedactor Test
   console.log('\n--- 4. Tool: pii_redactor ---');
   const redactRes = await executeTool('pii_redactor', {
-    text: 'Call alex@example.com at 555-123-4567. Card: 4111-2222-3333-4444'
+    // 4111-1111-1111-1111 is the standard Luhn-valid Visa test number
+    // (the old 4111-2222-3333-4444 fails Luhn and must NOT match).
+    text: 'Call alex@example.com at 555-123-4567. Card: 4111-1111-1111-1111'
   });
   assert(redactRes.redactions_count === 3, 'PIIRedactor detected 3 PII entities');
 
